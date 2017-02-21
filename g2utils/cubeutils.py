@@ -158,8 +158,8 @@ def cubeSubtractor(cube, otherCube, standard_name=None,
     return subtracted
 # end of def cubeSubtractor(...):
 
-def cubeCummulator(cubes, standard_name=None, 
-                        long_name=None, removeSTASH=False, addZerosFirstCube=True):
+def cubeCummulator(cubes, standard_name=None, long_name=None, unit=None,
+                    removeSTASH=False, addZerosFirstCube=True):
     '''
     cubeCummulator : It cummulate the data over time from starting cube.
     addZerosFirstCube : True | False. It does add zeros cubes begining of the 
@@ -180,7 +180,7 @@ def cubeCummulator(cubes, standard_name=None,
     sname = standard_name if standard_name else precube.standard_name
     if sname == 'None': sname = None
 #    cm = precube.cell_methods[0] if precube.cell_methods else None 
-    unit = precube.units 
+    unit = unit if unit else precube.units
     cm = iris.coords.CellMethod('sum', ('time',), intervals=('1 hour',), 
                      comments=(' accumulation',))
     

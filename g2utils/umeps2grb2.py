@@ -35,7 +35,7 @@ from iris.time import PartialDateTime
 from cubeutils import cubeAverager, cubeSubtractor
 from ncum_load_rules import update_cf_standard_name
 from um2grb2 import (createDirWhileParallelRacing, getCubeData, myLog, 
-             __getAnlFcstFileNameIdecies__, __genAnlFcstOutFileName__, 
+             __getAnlFcstFileNameIndecies__, __genAnlFcstOutFileName__, 
             getCubeAttr, _NoDaemonProcess, _MyPool)
 
 # End of importing business
@@ -272,7 +272,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
            __end_long_fcst_hour__ 
     
     hr = int(hr)
-    hr = (hr - 1) * 24 if hr > 0 else hr
+    if __fcst_step_hour__ == 24: hr = (hr - 1) * 24 if hr > 0 else hr
     
     infile = os.path.join(inDataPath, fname)    
             
@@ -330,6 +330,61 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # do hourly mean.      
         doMultiHourlyMean = False    
         
+    elif 'pd' in fname:            
+        # consider variable
+        # consider variable
+        varNamesSTASH = [('air_temperature', 'm01s16i203'),  
+                    ('geopotential_height', 'm01s16i202'),                    
+                    ('relative_humidity', 'm01s16i256'), 
+                    ('specific_humidity', 'm01s30i205'),                                   
+                    ('x_wind', 'm01s15i243'),
+                    ('y_wind', 'm01s15i244'),
+                    ('upward_air_velocity', 'm01s15i242')]         
+        # the cube contains accumulated/min/max data at every 24-hours.        
+        
+        if hr: 
+            fcstHours = numpy.array([hr+6])
+        else:
+            fcstHours = numpy.array([0, 6])
+
+        # we are extracting at particular instantaneous value, so no need to 
+        # do hourly mean.      
+        doMultiHourlyMean = False    
+    
+    elif 'pg' in fname:            
+        # consider variable
+        # consider variable
+        varNamesSTASH = [('air_pressure_at_sea_level', 'm01s16i222'),
+                        ('air_temperature', 'm01s03i236'),   
+                        ('air_temperature_maximum', 'm01s03i236'),   
+                        ('air_temperature_minimum', 'm01s03i236'),   
+                        ('dew_point_temperature', 'm01s03i250'),   
+                        ('surface_temperature', 'm01s00i024'),   
+                        ('land_binary_mask', 'm01s00i030'),   
+                        ('moisture_content_of_soil_layer', 'm01s08i223'),
+                        ('soil_temperature', 'm01s03i238'),    
+                        ('precipitation_amount', 'm01s05i226'),   
+                        ('relative_humidity', 'm01s03i245'),           
+                        ('specific_humidity', 'm01s03i237'),   
+                        ('surface_air_pressure', 'm01s00i409'),   
+                        ('surface_altitude', 'm01s00i033'),   
+                        ('x_wind', 'm01s03i209'),  
+                        ('y_wind', 'm01s03i210'),
+                        ('surface_net_downward_shortwave_flux', 'm01s01i202'),
+                        ('surface_net_downward_longwave_flux', 'm01s02i201'), 
+                        ('surface_upward_latent_heat_flux', 'm01s03i234'),   
+                        ('surface_upward_sensible_heat_flux', 'm01s03i217'),   
+                        ('toa_outgoing_longwave_flux', 'm01s02i205')]         
+        # the cube contains accumulated/min/max data at every 24-hours.        
+        
+        if hr: 
+            fcstHours = numpy.array([hr+6])        
+        else:
+            fcstHours = numpy.array([0, 6])
+
+        # we are extracting at particular instantaneous value, so no need to 
+        # do hourly mean.      
+        doMultiHourlyMean = False  
     ##### FORECAST FILE END
     else:
         raise ValueError("Filename '%s' not implemented yet!" % fname)
@@ -344,9 +399,9 @@ def packEnsembles(arg):
             _preExtension_, _ncfilesVars_, _requiredLat_, _requiredLon_, \
             _doRegrid_, __utc__, _requiredPressureLevels_, __LPRINT__, \
             __outg2files__, _lock_, _accumulationVars_, __fcst_step_hour__, \
-            _targetGridFile_, _extraPolateMethod_, _extraPolateMethod_, \
+            _targetGridFile_, _extraPolateMethod_, _current_date_, \
              _reverseLatitude_, _precipVars_, _maskOverOceanVars_
-           
+                 
     infiles, varNamesSTASHFcstHour = arg
     varName, varSTASH, fhr = varNamesSTASHFcstHour
     
@@ -542,8 +597,9 @@ def packEnsembles(arg):
         numpy.ma.set_fill_value(ensembleData, 9.999e+20)
             
         totEns = len(ensembleData)
+        member = int(infile.split('/')[-1].split('_')[0]) # get member number
         # create ensemble coordinate
-        enscoord = iris.coords.DimCoord(numpy.array(idx, dtype=numpy.int32), 
+        enscoord = iris.coords.DimCoord(numpy.array(member, dtype=numpy.int32), 
                              standard_name='realization', units=Unit('no_unit'), 
                                                     long_name='ensemble_member')
                                                                                                 
@@ -592,25 +648,24 @@ def packEnsembles(arg):
 
         # get the regridded ensembles meta data 
         varName, varSTASH, fcstTm, refTm, lat1, lon1 = getCubeAttr(ensembleData)
-
+        
         if fcstTm.bounds is not None:                
             # this is needed for forecast 00th simulated_hr
             # get the last hour from bounds
             hr = str(int(fcstTm.bounds[-1][-1]))
-            if __LPRINT__: print "Bounds comes in ", hr, fcstTm.bounds, fileName                        
+            if __LPRINT__: print "Bounds comes in ", hr, fcstTm.bounds                        
         else:
             # get the fcst time point 
             # this is needed for analysis/forecast 00th simulated_hr
             hr = str(int(fcstTm.points))
-            if __LPRINT__: print "points comes in ", hr, fileName 
+            if __LPRINT__: print "points comes in ", hr 
         # end of if fcstTm.bounds:
         
         outFileNameStructure = __fcstFileNameStructure__
         # get the out fileName Structure based on pre / user defined indecies                       
-        outFnIndecies = __getAnlFcstFileNameIdecies__(outFileNameStructure)
+        outFnIndecies = __getAnlFcstFileNameIndecies__(outFileNameStructure)
         # get the file name extension
         fileExtension = outFileNameStructure[-1]  
-                                  
         # generate the out file name based on actual informations                                 
         outFn = __genAnlFcstOutFileName__(outFileNameStructure, 
                              outFnIndecies, _current_date_, hr, 
@@ -832,7 +887,7 @@ def tweaked_messages(cubeList):
                     if cube.standard_name.startswith('air_pressure_at_sea_level'):
                         # we have to explicitly re-set the type of first fixed
                         # surfcae as Mean sea level (101)
-                        gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 101)                     
+                        gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 101)
                     # end of if cube.standard_name.startswith('tropopause'): 
                 # end of if cube.standard_name:
 
@@ -918,26 +973,35 @@ def convertFilesInParallel(fnames, ftype):
     return
 # end of def convertFilesInParallel(fnames):
 
-def _checkInFilesStatus(path, ftype, pfname):
+def _checkInFilesStatus(path, ftype, pfname, **kwarg):
     
-    global __start_long_fcst_hour__, __end_long_fcst_hour__, _ensemble_count_
+    global __start_long_fcst_hour__, __end_long_fcst_hour__, _ensemble_count_, __fcst_step_hour__
+    
+    start_long_fcst_hour = kwarg.get('start_long_fcst_hour', __start_long_fcst_hour__)
+    end_long_fcst_hour = kwarg.get('end_long_fcst_hour', __end_long_fcst_hour__)
+    fcst_step_hour = kwarg.get('fcst_step_hour', __fcst_step_hour__)
+    ensemble_count = kwarg.get('ensemble_count', _ensemble_count_)
     
     if ftype in ['ana', 'anl']:
         fhrs = ['000'] 
     elif ftype in ['fcst', 'prg']:
         # calculate start hour of long fcst in multiple of days. 
-        start_fcst_hour = (__start_long_fcst_hour__ / 24) 
-        end_fcst_hour = __end_long_fcst_hour__/24        
-        fhrs = [str(hr) for hr in range(start_fcst_hour, end_fcst_hour+1, 1)]
-    
+        if fcst_step_hour == 24:
+            start_fcst_hour = (start_long_fcst_hour / 24) 
+            end_fcst_hour = end_fcst_hour/24        
+            fhrs = [str(hr) for hr in range(start_fcst_hour, end_fcst_hour+1, 1)]
+            pfiles = ['pa', 'pb', 'pc']
+        elif fcst_step_hour == 6:
+            fhrs = [str(hr).zfill(3) for hr in range(start_long_fcst_hour, end_long_fcst_hour, 6)]
+            pfiles = ['pd', 'pg']
     fileNotExistList = []
 
-    for ehr in range(0, _ensemble_count_+1, 1):
-        if pfname in ['pa', 'pb', 'pc']:
+    for ehr in range(0, ensemble_count+1, 1):
+        if pfname in pfiles:
             for fhr in fhrs:
                 # construct the correct fileName from partial fileName and hours
                 # add hour only if doenst have any extension on partial filename.
-                fexthr = fhr if int(fhr) else '1'
+                fexthr = fhr #if int(fhr) else '1'
                 fname = str(ehr).zfill(3) + '_' + pfname + fexthr
                 # becase extension 1 file contains both 00 hr and 24 hour.
                 fpath = os.path.join(path, fname)
@@ -981,7 +1045,7 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
         print "__end_long_fcst_hour__=",__end_long_fcst_hour__
         print "__fcst_step_hour__=", __fcst_step_hour__
     # get the out fileName Structure based on pre / user defined indecies
-    outFnIndecies = __getAnlFcstFileNameIdecies__(outFileNameStructure)
+    outFnIndecies = __getAnlFcstFileNameIndecies__(outFileNameStructure)
     status = None
     for fhr in fhrs:
         # generate the out file name based on actual informations.

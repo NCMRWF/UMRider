@@ -43,8 +43,15 @@ clines = [l.strip() for l in open(setupfile).readlines() \
 if not clines:
     raise ValueError("Empty setup list loaded from %s" % setupfile)
 
-# get the dictionary keys, values
-cdic = {k.strip(): v.strip() for k,v in [l.split('=') for l in clines]}
+clines = [l.split('=') for l in clines]
+cdic = {}
+for k,v in clines: cdic[k.strip()] = v.strip()
+try:
+    pass
+    # get the dictionary keys, values
+    #cdic = {k.strip(): v.strip() for k,v in clines}
+except Exception as e:
+    raise ValueError("got problem while reading by split (=) from file %s. Err %s" % (setupfile, str(e)))
 
 # store into local variables
 inPath = cdic.get('inPath', None)  
