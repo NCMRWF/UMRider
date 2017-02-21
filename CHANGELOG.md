@@ -1,10 +1,11 @@
 # Change Log
 
-## [v2.0.1](https://github.com/NCMRWF/UMRider/tree/v2.0.1) (2017-01-12)
+## [v2.0.1](https://github.com/NCMRWF/UMRider/tree/v2.0.1) (2017-02-21)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v2.0.0...v2.0.1)
 
 **Merged pull requests:**
 
+- update TIGGE, IMDAA + IndianReg Grads NC file post process [\#131](https://github.com/NCMRWF/UMRider/pull/131) ([arulalant](https://github.com/arulalant))
 - Support for NCUM Regional Model and IMDAA Reanalysis Post Processing [\#130](https://github.com/NCMRWF/UMRider/pull/130) ([arulalant](https://github.com/arulalant))
 - 	support for iris 1.10.dev1 [\#128](https://github.com/NCMRWF/UMRider/pull/128) ([arulalant](https://github.com/arulalant))
 
@@ -120,8 +121,6 @@
 - Fix unknown standard variable names in iris load [\#26](https://github.com/NCMRWF/UMRider/issues/26)
 - we should include horizontal resolution in grib2 file name [\#24](https://github.com/NCMRWF/UMRider/issues/24)
 - In out file name should give option for ensemble  [\#22](https://github.com/NCMRWF/UMRider/issues/22)
-- Calculate surface upward longwave & softwave radiation flux [\#18](https://github.com/NCMRWF/UMRider/issues/18)
-- Need to support for HYCOM  [\#17](https://github.com/NCMRWF/UMRider/issues/17)
 - Need to extract 3 hourly data and write into 3 hourly files [\#16](https://github.com/NCMRWF/UMRider/issues/16)
 - user specified ordered vars [\#15](https://github.com/NCMRWF/UMRider/issues/15)
 - Need to support for IND REGION [\#14](https://github.com/NCMRWF/UMRider/issues/14)
@@ -131,7 +130,6 @@
 
 **Fixed bugs:**
 
-- Soil Moisture Volume min & max value is zero in IndRegion [\#76](https://github.com/NCMRWF/UMRider/issues/76)
 - Fix g2ctl.pl option & forecast reference, bounds time for analysis files [\#39](https://github.com/NCMRWF/UMRider/issues/39)
 - sea ice concentration has full of zero [\#33](https://github.com/NCMRWF/UMRider/issues/33)
 
