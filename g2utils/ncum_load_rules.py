@@ -172,7 +172,19 @@ def update_cf_standard_name(cube, field, filename):
                 forecast_period.bounds = array([[round(forecast_period.bounds[0][0], 3)+freminder,
                                             round(forecast_period.bounds[0][1], 3)+freminder]])
         # end of if fname.startswith('umnsaa'):
-
+        
+        if fname.startswith('umglc.pp0'):
+            if (cube.standard_name, varSTASH) == ('surface_altitude', 'm01s00i033'):
+                # UPDATE 3 UTC by adding in all time properties. So that it will
+                # become common time information along with other variables UTC.
+                forecast_reference_time = cube.coords('forecast_reference_time')[0]
+                forecast_reference_time.points = array([forecast_reference_time.points[0]+6.0])
+                forecast_period = cube.coords('forecast_period')[0]
+                forecast_period.points = array([0.0])
+                time = cube.coords('time')[0]
+                time.points = array([time.points[0]+3.0])
+        # end of if fname.startswith('umglc.pp0'):
+        
     elif isinstance(field, GribWrapper):
         # loading from grib file
         if field.editionNumber == 2 and (field.parameterNumber > 191 or

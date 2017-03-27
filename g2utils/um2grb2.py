@@ -255,7 +255,7 @@ _orderedVars_ = {'PressureLevel': [
 ('wind_speed_of_gust', 'm01s03i463'),
 ('surface_net_downward_shortwave_flux_corrected', 'm01s01i202'),
 ('soil_temperature', 'm01s08i225'),
-# the below one is for orography which presents only in analysis 00 file.
+# the below one is for orography which presents only in analysis file.
 # so we must keep this as the last one in the ordered variables!
 ('surface_altitude', 'm01s00i033')],
 }
@@ -719,7 +719,13 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
         # but we need to extract every 0th hours instantaneous.
         fcstHours = numpy.array([0,])     
         doMultiHourlyMean = False
-            
+    
+    elif fname.startswith('umglc.pp0'): 
+        varNamesSTASH = [('surface_altitude', 'm01s00i033')]
+        # we need to extract every 0th hours instantaneous.
+        fcstHours = numpy.array([0,])     
+        doMultiHourlyMean = False
+        
     elif fname.startswith('umglca_pb'):              # umglca_pb
         # available for use
         varNamesSTASH = [('land_binary_mask', 'm01s00i030'),
@@ -2823,6 +2829,9 @@ def doShuffleVarsInOrder(fpath):
                                            action='add',
                                            standard_name='precipitation_amount',
                                                               removeSTASH=True)
+        # lets fix -ve precipitation as 0.0        
+        precipitation_amount.data[precipitation_amount.data < 0.0] = 0.0
+        
         # store the 'precipitation_amount' into orderedVars
         orderedVars.insert(idx, precipitation_amount)
         print precipitation_amount.data.min(), precipitation_amount.data.max()
@@ -3666,6 +3675,8 @@ def convertAnlFiles(inPath, outPath, tmpPath, **kwarg):
         if utc == '00':
             # pass user passed analysis in files valid for 00UTC otherwise pass proper infile.
             anl_fnames = UMInAnlFiles + anl_fnames if UMInAnlFiles else anl_fnames
+            # remove duplicate orography files.
+            if 'qwqg00.pp0' in anl_fnames and 'umglc.pp0' in anl_fnames: anl_fnames.remove('umglc.pp0')
     # end of if __UMtype__ == 'global':
     
     # get the current date in YYYYMMDD format
