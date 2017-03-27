@@ -68,7 +68,7 @@ import multiprocessing.pool as mppool
 # by the top-level multiprocessing module.
 import datetime
 from iris.time import PartialDateTime
-from cubeutils import cubeAverager, cubeSubtractor, cubeCummulator
+from cubeutils import cubeAverager, cubeAddSubtractor, cubeCummulator
 from ncum_load_rules import update_cf_standard_name
 import um2grb2 as umfcs
 import umeps2grb2 as umeps

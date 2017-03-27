@@ -22,8 +22,8 @@ g2scripts_absolute_dir="/gpfs2/home/umdas/UMRider/g2scripts/"
 g2script=$g2scripts_absolute_dir/um2grb2_anl_06Z.py
 
 # export the configure paths to needed variables
-export UMRIDER_SETUP=$DIR/ncum_imdaa_regional_post_2df_setup.cfg
-export UMRIDER_VARS=$DIR/ncum_imdaa_regional_post_2df_vars.cfg
+export UMRIDER_SETUP=$DIR/ncum_imdaa_regional_post_flux_setup.cfg
+export UMRIDER_VARS=$DIR/ncum_imdaa_regional_post_flux_vars.cfg
 export GRIB2TABLE=$localTable
 
 export GRIB2TABLE=/gpfs2/home/umtid/UMRider/tables/local/ncmr/v1/ncmr_grib2_local_table

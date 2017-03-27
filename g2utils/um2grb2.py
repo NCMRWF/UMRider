@@ -69,7 +69,7 @@ import multiprocessing.pool as mppool
 # by the top-level multiprocessing module.
 import datetime
 from iris.time import PartialDateTime
-from cubeutils import cubeAverager, cubeSubtractor
+from cubeutils import cubeAverager, cubeAddSubtractor
 from ncum_load_rules import update_cf_standard_name
 # End of importing business
 
@@ -226,16 +226,41 @@ _orderedVars_ = {'PressureLevel': [
 ('land_binary_mask', 'm01s00i030'),
 ('sea_ice_area_fraction', 'm01s00i031'),
 ('sea_ice_thickness', 'm01s00i032'),
+('snowfall_amount', 'm01s00i023'),
 # the snowfall_amount might be changed as 
 # liquid_water_content_of_surface_snow by convert it into
 # water equivalent of snow amount, before re-ordering itself.
 ('liquid_water_content_of_surface_snow', 'm01s00i023'),
+# IMDAA reanalysis extra variables other than NCUM 
+('stratiform_snowfall_rate', 'm01s04i204'),
+('soil_evaporation_rate', 'm01s03i296'),
+('canopy_evaporation_rate', 'm01s03i297'),
+('direct_surface_shortwave_flux_in_air', 'm01s01i215'),
+('surface_downwelling_longwave_flux_assuming_clear_sky', 'm01s02i208'),
+('open_sea_evaporation_rate', 'm01s03i232'),
+('very_low_type_cloud_area_fraction', 'm01s09i202'),
+('cloud_base_altitude', 'm01s09i219'),
+('convective_rainfall_rate', 'm01s05i205'),
+('convective_snowfall_flux', 'm01s05i206'),
+('stratiform_rainfall_rate', 'm01s04i203'),
+('subsurface_runoff_flux', 'm01s08i235'),
+('surface_diffuse_downwelling_shortwave_flux_in_air', 'm01s01i216'),
+('surface_downwelling_shortwave_flux_in_air_assuming_clear_sky', 'm01s01i210'),
+('surface_net_downward_shortwave_flux', 'm01s01i201'),
+('downward_heat_flux_in_soil', 'm01s03i202'),
+('surface_roughness_length', 'm01s00i026'),
+('surface_runoff_flux', 'm01s08i234'),
+('surface_upward_water_flux', 'm01s03i223'),
+('surface_upwelling_shortwave_flux_in_air_assuming_clear_sky', 'm01s01i211'),
+('wind_speed_of_gust', 'm01s03i463'),
+('surface_net_downward_shortwave_flux_corrected', 'm01s01i202'),
+('soil_temperature', 'm01s08i225'),
 # the below one is for orography which presents only in analysis 00 file.
 # so we must keep this as the last one in the ordered variables!
 ('surface_altitude', 'm01s00i033')],
 }
   
-
+    
 #Define _precipVars_
 # The following vars should contains only precipitation, rainfall, snow 
 # variables, those whose regrid extrapolate should be only in 'linear' mode
@@ -272,36 +297,88 @@ _accumulationVars_ = [('precipitation_amount', 'm01s05i226'),
 ## nc file also wont be problem to load cf_standard_name into cube and 
 ## followed by storing into grib2 file. All because we need to write variables
 ## in the way we need (i.e. ordered always)!!
-_ncfilesVars_ = [('volumetric_moisture_of_soil_layer', 'm01s08i223'), 
-        # 'moisture_content_of_soil_layer' renamed as  
-        # 'volumetric_moisture_of_soil_layer', but same STASH m01s08i223 code.
-        ('volumetric_moisture_of_soil_layer', 'm01s08i208'), 
-        # 'soil_moisture_content' renamed as  
-        # 'volumetric_moisture_of_soil_layer', but same STASH m01s08i208 code.
-                 ('soil_temperature', 'm01s03i238'),
-                 ('toa_incoming_shortwave_flux', 'm01s01i207'),
-                 ('tropopause_altitude', 'm01s30i453'),
-                 ('tropopause_air_temperature', 'm01s30i452'),
-                 ('tropopause_air_pressure', 'm01s30i451'),
+_ncfilesVars_ = [
+('volumetric_moisture_of_soil_layer', 'm01s08i223'), 
+# 'moisture_content_of_soil_layer' renamed as  
+# 'volumetric_moisture_of_soil_layer', but same STASH m01s08i223 code.
+('volumetric_moisture_of_soil_layer', 'm01s08i208'), 
+# 'soil_moisture_content' renamed as  
+# 'volumetric_moisture_of_soil_layer', but same STASH m01s08i208 code.
+('soil_temperature', 'm01s08i225'), 
+('soil_temperature', 'm01s03i238'),
+('toa_incoming_shortwave_flux', 'm01s01i207'),
+('toa_outgoing_longwave_flux', 'm01s02i205'),
+('toa_outgoing_shortwave_flux', 'm01s01i205'),
+('tropopause_altitude', 'm01s30i453'),
+('tropopause_air_temperature', 'm01s30i452'),
+('tropopause_air_pressure', 'm01s30i451'),
+('surface_net_downward_shortwave_flux_corrected', 'm01s01i202'),
 ('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', 'm01s02i422'),
 ('atmosphere_mass_content_of_dust_dry_aerosol_particles', 'm01s30i403'),
 # surface_temperature grib code is same as air_temperature (for the purpose 
 # of OSF, Hycom requirements). So while reading surface_temperature variable 
 # from grib2 will make confusion along with air_temperature. To avoid this
 # confusion, lets write this variable in nc seperate file.
-('surface_temperature', 'm01s00i024'),]
+('surface_temperature', 'm01s00i024'),
+]
+
+
+
                  
 ## Define _ncmrGrib2LocalTableVars_
 ## the following variables need to be set localTableVersion no as 1 and
 ## master table version no as 255 (undefined), since WRF grib2 table doesnt
 ## support for the following variables. So we created our own local table.
-_ncmrGrib2LocalTableVars_ = ['fog_area_fraction',
-                            'toa_outgoing_longwave_flux_assuming_clear_sky',   
-                            'toa_outgoing_shortwave_flux_assuming_clear_sky',
-                  'atmosphere_optical_thickness_due_to_dust_ambient_aerosol',
-                     'atmosphere_mass_content_of_dust_dry_aerosol_particles',
-                               'cloud_area_fraction_assuming_random_overlap',
-                       'cloud_area_fraction_assuming_maximum_random_overlap',]
+_ncmrGrib2LocalTableVars_ = [
+        'fog_area_fraction',
+        'soil_evaporation_rate', 
+        'canopy_evaporation_rate', 
+        'open_sea_evaporation_rate', 
+        'density_r_r_in_air',    
+        'surface_net_downward_shortwave_flux_corrected',
+        'direct_uv_flux_in_air', 
+        'surface_downwelling_shortwave_flux_in_air_assuming_clear_sky', 
+        'surface_upwelling_shortwave_flux_in_air_assuming_clear_sky'
+        'toa_outgoing_shortwave_flux_assuming_clear_sky',
+        'toa_outgoing_longwave_flux_assuming_clear_sky',   
+        'surface_downwelling_longwave_flux_assuming_clear_sky', 
+        'atmosphere_optical_thickness_due_to_dust_ambient_aerosol',
+        'atmosphere_mass_content_of_dust_dry_aerosol_particles',
+        'very_low_type_cloud_area_fraction', 
+        'cloud_area_fraction_assuming_random_overlap',
+        'cloud_area_fraction_assuming_maximum_random_overlap',
+        'subsurface_runoff_flux', 
+        'surface_upward_water_flux', 
+        'downward_heat_flux_in_soil', 
+        'cloud_volume_fraction_in_atmosphere_layer'
+        'liquid_cloud_volume_fraction_in_atmosphere_layer'
+        'ice_cloud_volume_fraction_in_atmosphere_layer',]
+
+
+_short_name_ = {
+    'convective_rainfall_amount': 'ACPCP',
+    'convective_snowfall_amount': 'SNOC',
+    'precipitation_amount': 'APCP',
+    'stratiform_rainfall_amount': 'NCPCP',
+    'stratiform_snowfall_amount': 'SNOL',
+    'convective_rainfall_rate': 'CPRAT',
+    'stratiform_rainfall_rate': 'LSPRATE',
+    'stratiform_snowfall_rate': 'LSSRATE',
+    'convective_snowfall_flux': 'CSRATE',
+    'snowfall_amount': 'TSNOWP',
+    'direct_surface_shortwave_flux_in_air': 'DSSWRFLX',
+    'surface_diffuse_downwelling_shortwave_flux_in_air': 'DIFSSWRF',
+    'surface_net_downward_shortwave_flux_corrected': 'NDDSWRFC',
+    'toa_outgoing_shortwave_flux_assuming_clear_sky': 'CSUSFT',
+    'toa_outgoing_longwave_flux_assuming_clear_sky': 'CSULFT',
+    'surface_upwelling_shortwave_flux_in_air_assuming_clear_sky': 'CSUSFS',
+    'surface_downwelling_shortwave_flux_in_air_assuming_clear_sky': 'CSDSFS',
+    'surface_downwelling_longwave_flux_assuming_clear_sky': 'CSDLFS',
+    'moisture_content_of_soil_layer': 'SOILM',
+    'soil_temperature': 'TSOIL',
+    'downward_heat_flux_in_soil': 'DSHFLUX',
+    }
+
 
 ## Define _maskOverOceanVars_
 ## the following variables need to be set mask over ocean because the original
@@ -1148,6 +1225,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('y_wind', 'm01s15i202'), # 8 pressure levels
                     ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
                     ('cloud_area_fraction_assuming_maximum_random_overlap', 'm01s09i217'),
+                    ('water_evaporation_flux_from_soil', 'm01s03i229'),
                     # The precipitation_amount, *snowfall_amount, and
                     # *rainfall_amount variable must be at the last
                     # in this list. we will have to do 6 hourly accumulation
@@ -1162,7 +1240,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('stratiform_snowfall_amount', 'm01s04i202'),
                     ('stratiform_rainfall_amount', 'm01s04i201'),]
                     
-        if set(_requiredPressureLevels_).issubset([925., 960., 975., 980., 985., 990., 995., 1000.]):
+        if _requiredPressureLevels_ and set(_requiredPressureLevels_).issubset([925., 960., 975., 980., 985., 990., 995., 1000.]):
             # same stash available in pd file also. so include only incase of chosen pressure level 
             # applicable to this pe file.
             varNamesSTASH.append(('geopotential_height', 'm01s16i202')) # 8 pressure levels            
@@ -1314,6 +1392,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('surface_net_downward_longwave_flux', 'm01s02i201'),   
                     ('surface_net_downward_shortwave_flux', 'm01s01i201'),   
                     ('surface_net_downward_shortwave_flux', 'm01s01i202'),   
+                    ('surface_net_downward_shortwave_flux_corrected', 'm01s01i202'),
                     ('surface_roughness_length', 'm01s00i026'),   
                     ('surface_runoff_flux', 'm01s08i234'),   
                     ('surface_temperature', 'm01s00i024'),   
@@ -1334,7 +1413,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('y_wind', 'm01s15i213'),] 
         # Just convert pp/ff file to grib2/nc file. So no need to extract 
         # individual fcst hours.
-        fcstHours = [lambda cell: 0 <= cell <= 9.0] # extract from 0 to 9
+        fcstHours = [lambda cell: 0 <= cell <= 5.0] # extract from 0 to 9
         doMultiHourlyMean = False
         
     elif  fname.startswith('pp5'):             # pp5
@@ -1357,7 +1436,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('y_wind', 'm01s00i003'),]
         # Just convert pp/ff file to grib2/nc file. So no need to extract 
         # individual fcst hours.
-        fcstHours = [lambda cell: 0 <= cell <= 9.0] # extract from 0 to 9
+        fcstHours = [lambda cell: 0 <= cell <= 5.0] # extract from 0 to 9
         doMultiHourlyMean = False    
             
     elif  fname.startswith('pp6'):             # pp6
@@ -1369,7 +1448,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                          ('y_wind', 'm01s15i202'),]
         # Just convert pp/ff file to grib2/nc file. So no need to extract 
         # individual fcst hours.
-        fcstHours = [lambda cell: 0 <= cell <= 9.0] # extract from 0 to 9
+        fcstHours = [lambda cell: 0 <= cell <= 5.0] # extract from 0 to 9
         doMultiHourlyMean = False    
     ##### IMDAA FORECAST FILE END #######
     else:
@@ -1865,6 +1944,19 @@ def regridAnlFcstFiles(arg):
             if fhr is not None:
                 # make forecast_period constraint
                 fpConstraint = iris.Constraint(forecast_period=fhr)
+                # IMDAA requirements
+                if __UMReanalysis__:
+                    if 'flux' in varName and not varName == 'convective_snowfall_flux':
+                        umrfhr = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]
+                        fpConstraint = iris.Constraint(forecast_period=umrfhr)
+                    if 'amount' in varName:
+                        umrfhr = lambda cell: 0 <= cell <= 6.0
+                        fpConstraint = iris.Constraint(forecast_period=umrfhr)
+                    if varName in ['convective_snowfall_flux', 'snowfall_amount']:
+                        umrfhr = [1., 2., 3., 4., 5., 6.]
+                        fpConstraint = iris.Constraint(forecast_period=umrfhr)
+                # end of if __UMReanalysis__:
+                       
             if __anl_step_hour__ == 3 and fhr == 1.5:
                 # Load from current date instead of yesterday date 
                 ana_today_infile = os.path.join(_inDataPath_, fileName)                 
@@ -1909,14 +2001,15 @@ def regridAnlFcstFiles(arg):
                 print "has_lazy_data =", tmpCube.has_lazy_data()
             # end of if tmpCube.has_lazy_data():
             
-            if not __UMReanalysis__:
+            if not __UMReanalysis__:            
                 if (varName, varSTASH) == ('snowfall_amount', 'm01s00i023'):
                     # the snowfall_amount need to be changed as 
                     # liquid_water_content_of_surface_snow by convert it into
                     # water equivalent of snow amount.                    
                     _convert2WEASD(tmpCube)
                 # end of if (varName, varSTASH) == ('snowfall_amount', 'm01s00i023'):
-                
+            
+            
                 if doMultiHourlyMean and (tmpCube.coords('forecast_period')[0].shape[0] > 1):              
                     # grab the variable which is f(t,z,y,x)
                     # tmpCube corresponds to each variable for the SYNOP hours from
@@ -2022,7 +2115,8 @@ def regridAnlFcstFiles(arg):
                         # We should assign 0 instead 1e-15 only for this var!
                         regdCube.data[regdCube.data <= 1e-15] = 0.0
                         regdCube.data[regdCube.data < 0.0] = 0.0
-                elif (varName, varSTASH) == ('soil_temperature', 'm01s03i238'):
+                elif (varName, varSTASH) in [('soil_temperature', 'm01s03i238'), 
+                                       ('soil_temperature', 'm01s08i225')]:
                     # We should assign min instead 1e-15 only for this var!
                     # because 0 will not make sense when temperature unit is Kelvin
                     nmin = numpy.ma.masked_less_equal(regdCube.data, 1e-15).min()
@@ -2094,8 +2188,7 @@ def regridAnlFcstFiles(arg):
                 hr = str(int(fcstTm.points))
                 if __LPRINT__: print "points comes in ", hr, fileName 
             # end of if fcstTm.bounds:
-            #if dtype == 'ana':
-            #    hr = str(int(hr) + int(__utc__))
+            if dtype == 'ana': hr = str(int(hr) + int(__utc__))   # IMPORTANT
             # generate the out file name based on actual informations                                 
             outFn = __genAnlFcstOutFileName__(outFileNameStructure, 
                                  outFnIndecies, _current_date_, hr, 
@@ -2111,8 +2204,7 @@ def regridAnlFcstFiles(arg):
                         # reason : couldnt write back properly.
                         regdCube.remove_coord('soil_model_level_number')
                         
-            if regdCube.coords('soil_model_level_number') or \
-                    regdCube.coords('depth') and not __UMReanalysis__:
+            if regdCube.coords('soil_model_level_number') or regdCube.coords('depth'):
                 # NOTE : THIS SECTION WILL WORKS ONLY FOR SOIL MOISTURE AND
                 # SOIL TEMPERATUE AT 4 LAYERS, NOT FOR SINGLE LAYER OR 
                 # NOT FOR Root zone Soil Moisture Content !!!
@@ -2130,40 +2222,68 @@ def regridAnlFcstFiles(arg):
                 _updateDepthBelowLandSurfaceCoords4Levs(depth_below_land_surface)
                 if __LPRINT__: print "depth_below_land_surface", depth_below_land_surface
                 
-                if regdCube.standard_name == 'moisture_content_of_soil_layer':
+                if (regdCube.standard_name == 'moisture_content_of_soil_layer') and not __UMReanalysis__:
                     # pass the vertical layer depth in millimeter
                     _convert2VolumetricMoisture(regdCube, 
                                         levels=[100.0, 250.0, 650.0, 2000.0])
-                    print "converted four layer soil moisture to volumetric"
+                    print "converted four layer soil moisture to volumetric"                
+                    # We need to save this variable into nc file, why because
+                    # if we saved into grib2 and then re-read it while re-ordering
+                    # variables, iris couldnt load variables with 
+                    # depth_below_land_surfacer properly. We need to touch the 
+                    # _load_rules. So for timebeing, we saved it as seperate nc 
+                    # file. In iris-1.9 we couldnt append more variables into 
+                    # nc file. so we saved into muliple individual nc files, only
+                    # those who have depth_below_land_surface and will be deleted
+                    # after inserted properly into orderd grib2 files.
+                    ncfile = True
                 # end of if regdCube.standard_name == 'moisture_content_of_soil_layer':                
                 print "after soil_model_level_number", regdCube.data 
-                # We need to save this variable into nc file, why because
-                # if we saved into grib2 and then re-read it while re-ordering
-                # variables, iris couldnt load variables with 
-                # depth_below_land_surfacer properly. We need to touch the 
-                # _load_rules. So for timebeing, we saved it as seperate nc 
-                # file. In iris-1.9 we couldnt append more variables into 
-                # nc file. so we saved into muliple individual nc files, only
-                # those who have depth_below_land_surface and will be deleted
-                # after inserted properly into orderd grib2 files.
-                ncfile = True
             # end of if regdCube.coords('soil_model_level_number'):
             
-            if (varName, varSTASH) == ('soil_moisture_content', 'm01s08i208') \
-                                                    and not __UMReanalysis__:
+            if (varName, varSTASH) == ('soil_moisture_content', 'm01s08i208'):
                 # NOTE : THIS SECTION WILL WORKS ONLY FOR SINGLE LAYERED 
                 # Root zone Soil Moisture Content, NOT FOR 4 LAYERS.
                 
                 # By default this variable doesn't have any vertical coords 
                 # inforomation. So we must add explicitly by ourself.
                 _createDepthBelowLandSurfaceCoords1Lev(regdCube)
-                
-                # Convert this into volumetirc soil moisture. This varibale
-                # vertical level at 2meter in millimeter.
-                _convert2VolumetricMoisture(regdCube, levels=3000.0)
-                print "converted single layer soil moisture to volumetric"
-                ncfile = True
+                if not __UMReanalysis__:
+                    # Convert this into volumetirc soil moisture. This varibale
+                    # vertical level at 2meter in millimeter.
+                    _convert2VolumetricMoisture(regdCube, levels=3000.0)
+                    print "converted single layer soil moisture to volumetric"
+                    ncfile = True
             # end of if (varName, varSTASH) in (...):
+            
+            if (varName, varSTASH) in [('convective_rainfall_amount', 'm01s05i201'),
+                            ('convective_snowfall_amount', 'm01s05i202'),
+                            ('precipitation_amount', 'm01s05i226'),
+                            ('stratiform_rainfall_amount', 'm01s04i201'),
+                            ('stratiform_snowfall_amount', 'm01s04i202'),] and __UMReanalysis__:
+                ### This should be done only for IMDAA reanalysis project.
+                print regdCube.data.min(), regdCube.data.max()
+                clength = regdCube.shape[0]
+                # subtract from previously cummulated to make it as hourly accumulated, 
+                # instead of writing as hourly cummulated.
+                for ci in range(clength-1, 1, -1): regdCube[ci].data -= regdCube[ci-1].data
+                
+                # removing cummulative time informations
+                regdCube.remove_coord('forecast_period')
+                regdCube.remove_coord('time')
+                
+                snowvarCon = iris.Constraint(name='snowfall_amount')
+                snowSTASHCon = iris.AttributeConstraint(STASH='m01s00i023')
+                snowVar = cubes.extract(snowvarCon & snowSTASHCon)[0]
+                # adding time information same as snowfall_amount
+                regdCube.add_dim_coord(snowVar.coord('time'), 0)
+                regdCube.add_aux_coord(snowVar.coord('forecast_period'), 0)
+                
+                # extract only 6 hours (hourly) time steps in all 4 cycles, so that it will become 
+                # 24 hours (hourly) time steps.
+                regdCube = regdCube.extract(iris.Constraint(forecast_period=[1, 2, 3, 4, 5, 6]))
+            # end of if (varName, varSTASH) ... and __UMReanalysis__:
+            
             
             if (varName, varSTASH) in _ncfilesVars_:
                 # other than soil_model_level_number, few variables may be 
@@ -2359,12 +2479,12 @@ def doShuffleVarsInOrder(fpath):
     """
     global  _orderedVars_, _preExtension_, _ncfilesVars_, _inDataPath_, \
            _maskOverOceanVars_, _aod_pseudo_level_var_, _createGrib2CtlIdxFiles_, \
-           _createGrib1CtlIdxFiles_, _convertGrib2FilestoGrib1Files_, \
+           _createGrib1CtlIdxFiles_, _convertGrib2FilestoGrib1Files_, _short_name_, \
            _requiredLat_, _convertVars_, __outFileType__, __grib1FilesNameSuffix__, \
            __removeGrib2FilesAfterGrib1FilesCreated__, _removeVars_, cnvgrib, \
            __fcst_step_hour__, __anl_step_hour__, g2ctl, grib2ctl, gribmap, \
            __anl_aavars_reference_time__, _reverseLatitude_, __wgrib2Arguments__, \
-           _write2NetcdfFile_
+           _write2NetcdfFile_, __UMReanalysis__
     
     print "doShuffleVarsInOrder Begins"
     # need to store the ordered variables in this empty list
@@ -2390,13 +2510,17 @@ def doShuffleVarsInOrder(fpath):
             varConstraint = iris.Constraint(name=varName)
             # define varibale stash code constraint
             STASHConstraint = iris.AttributeConstraint(STASH=varSTASH)
-            var = ncloaddic['varSTASH'].extract(varConstraint & STASHConstraint)
-            orderedVars.append(var[0])
+            var = ncloaddic['varSTASH'].extract(varConstraint & STASHConstraint)[0]
+            if var and varName in _short_name_:
+                # set shortname to var_name which will be used to write 
+                # into nc file (essential to be accessed by grads)!
+                var.var_name = _short_name_[varName]
+            orderedVars.append(var)
         # end of for (varName, varSTASH) in _convertVars_:  
 
     elif os.path.isfile(fpath):
         try:        
-            f = iris.load(fpath) # load intermediate grib2 file
+            f = iris.load(fpath, callback=update_cf_standard_name) # load intermediate grib2 file
         except gribapi.GribInternalError as e:
             if str(e) == "Wrong message length":
                 print "ALERT!!!! ERROR!!! Couldn't read grib2 file to re-order", e
@@ -2423,7 +2547,7 @@ def doShuffleVarsInOrder(fpath):
         for i in unOrderedNonPressureLevelVarsList:
             name = i.standard_name if i.standard_name else i.long_name
             unOrderedNonPressureLevelVars[name] = i   
-    
+            
         if _convertVars_:
             # user has passed their own ordered and limited vars 
             orderedVarsList = _convertVars_
@@ -2437,10 +2561,12 @@ def doShuffleVarsInOrder(fpath):
             # got pressure vars, add to ordered final vars list  
             if varName in unOrderedPressureLevelVars: orderedVars.append(unOrderedPressureLevelVars[varName])
         # end of for name, STASH in _orderedVars_['PressureLevel']:
-            
+        
         for (varName, varSTASH) in orderedVarsList:
             # skip if user specified var not in non-pressure level vars list 
-            if not (varName, varSTASH) in _orderedVars_['nonPressureLevel']: continue
+            if not (varName, varSTASH) in _orderedVars_['nonPressureLevel']: 
+                print "Error : (%s, %s) not available in _orderedVars_. Pl add it!" % (varName, varSTASH)
+                continue
             # got non-pressure vars, add to ordered final vars list  
             if varName in unOrderedNonPressureLevelVars: 
                 orderedVars.append(unOrderedNonPressureLevelVars[varName])
@@ -2465,7 +2591,12 @@ def doShuffleVarsInOrder(fpath):
             
                 if var: 
                     # apped the ordered / corrected vars into the list, which will  
-                    # be going to saved into grib2 files by tweaking it further!                
+                    # be going to saved into grib2/nc files by tweaking it further!   
+                    if varName in _short_name_:
+                        pvar = var[0]
+                        # set shortname to var_name which will be used to write 
+                        # into nc file (essential to be accessed by grads)!
+                        pvar.var_name = _short_name_[varName]
                     if varName in _aod_pseudo_level_var_:
                         for plev, pval in _aod_pseudo_level_var_[varName]:
                             pvar = var[0].extract(iris.Constraint(pseudo_level=plev))
@@ -2510,7 +2641,7 @@ def doShuffleVarsInOrder(fpath):
     # end of if _requiredLat_ is not None:
         
     if (_maskOverOceanVars_ and land_binary_mask_var and 
-            lat_60N_start_val is not None and lat_60N_end_val is not None):
+            lat_60N_start_val is not None and lat_60N_end_val is not None) and not __UMReanalysis__:
 
         land_binary_mask = land_binary_mask_var[0].data < 1
         # here we are masking less than 1. we can do just simply == 0 also, 
@@ -2631,7 +2762,7 @@ def doShuffleVarsInOrder(fpath):
             raise ValueError("Can not calculate surface_upwelling_shortwave_flux, because unable to load surface_downwelling_shortwave_flux")
         # calculate 'surface_upwelling_shortwave_flux' by subtract 'surface_net_downward_shortwave_flux'
         # from 'surface_downwelling_shortwave_flux'       
-        surface_upwelling_shortwave_flux = cubeSubtractor(surface_downwelling_shortwave_flux[0], 
+        surface_upwelling_shortwave_flux = cubeAddSubtractor(surface_downwelling_shortwave_flux[0], 
                                            surface_net_downward_shortwave_flux[0], 
                        standard_name='surface_upwelling_shortwave_flux_in_air',
                                                               removeSTASH=True)
@@ -2658,14 +2789,45 @@ def doShuffleVarsInOrder(fpath):
             raise ValueError("Can not calculate surface_upwelling_longwave_flux, because unable to load surface_downwelling_shortwave_flux")
         # calculate 'surface_upwelling_longwave_flux' by subtract 'surface_net_downward_longwave_flux'
         # from 'surface_downwelling_longwave_flux'       
-        surface_upwelling_longwave_flux = cubeSubtractor(surface_downwelling_longwave_flux[0], 
+        surface_upwelling_longwave_flux = cubeAddSubtractor(surface_downwelling_longwave_flux[0], 
                                            surface_net_downward_longwave_flux[0], 
+                                           action='sub',
                        standard_name='surface_upwelling_longwave_flux_in_air',
                                                               removeSTASH=True)
         # store the 'surface_upwelling_longwave_flux' into orderedVars
         orderedVars.insert(idx, surface_upwelling_longwave_flux)
     # end of if ('surface_upwelling_longwave_flux_in_air', 'None') in _convertVars_:
-
+    
+    if ('precipitation_amount', 'None') in _convertVars_:
+        print "Calculating, ('precipitation_amount', 'None')"
+        # find the index in _convertVars_
+        idx = _convertVars_.index(('precipitation_amount', 'None'))
+        # adjust the current index by subtract 1, because in previous insertion 
+        # causes order index increased by 1.
+        idx = idx-1 if (idx and oidx is None) else idx
+        oidx = idx
+        # store the stratiform_snowfall_amount data into temporary variable
+        stratiform_snowfall_amount = [var for var in orderedVars 
+               if var.standard_name == 'stratiform_snowfall_amount'] 
+        if not stratiform_snowfall_amount:
+            raise ValueError("Can not calculate precipitation_amount (regional), because unable to load stratiform_snowfall_amount")           
+        # store the stratiform_rainfall_amount data into temporary variable
+        stratiform_rainfall_amount = [var for var in orderedVars 
+               if var.standard_name == 'stratiform_rainfall_amount']
+        if not stratiform_rainfall_amount:
+            raise ValueError("Can not calculate precipitation_amount (regional), because unable to load stratiform_rainfall_amount")
+        # calculate 'precipitation_amount' by adding 'stratiform_rainfall_amount'
+        # and 'stratiform_snowfall_amount' together.      
+        precipitation_amount = cubeAddSubtractor(stratiform_rainfall_amount[0], 
+                                           stratiform_snowfall_amount[0], 
+                                           action='add',
+                                           standard_name='precipitation_amount',
+                                                              removeSTASH=True)
+        # store the 'precipitation_amount' into orderedVars
+        orderedVars.insert(idx, precipitation_amount)
+        print precipitation_amount.data.min(), precipitation_amount.data.max()
+    # end of if ('precipitation_amount', 'None') in _convertVars_:    
+    
     if ('atmosphere_precipitable_water_content', 'None') in _convertVars_:
 
         # find the index in _convertVars_
@@ -2702,35 +2864,38 @@ def doShuffleVarsInOrder(fpath):
         # [4] 'atmosphere_cloud_ice_content'
         
         # Lets do first subtraction,  out = [1] - [2],        
-        atmosphere_precipitable_water_content = cubeSubtractor(atmosphere_mass_content_of_water[0], 
+        atmosphere_precipitable_water_content = cubeAddSubtractor(atmosphere_mass_content_of_water[0], 
                             atmosphere_mass_content_of_dust_dry_aerosol_particles[0], 
+                            action='sub',
                             long_name='atmosphere_precipitable_water_content',        
                                                              removeSTASH=True)
         # Lets make sure that standard_name is None for this variable.
         atmosphere_precipitable_water_content.standard_name = None
         # Lets do second subtraction,  out = out - [3],     
-        atmosphere_precipitable_water_content = cubeSubtractor(atmosphere_precipitable_water_content,               
-                                     atmosphere_cloud_liquid_water_content[0],                              
+        atmosphere_precipitable_water_content = cubeAddSubtractor(atmosphere_precipitable_water_content,
+                                     atmosphere_cloud_liquid_water_content[0],
+                                     action='sub',
                             long_name='atmosphere_precipitable_water_content',
                                                              removeSTASH=True) 
 
         # Lets do third / last subtraction,  out = out - [4],
-        atmosphere_precipitable_water_content = cubeSubtractor(atmosphere_precipitable_water_content,               
-                                              atmosphere_cloud_ice_content[0],                               
+        atmosphere_precipitable_water_content = cubeAddSubtractor(atmosphere_precipitable_water_content,
+                                              atmosphere_cloud_ice_content[0],
+                                              action='sub',
                             long_name='atmosphere_precipitable_water_content', 
                                                              removeSTASH=True)
 
         # lets store the 'atmosphere_precipitable_water_content' into orderedVars
         orderedVars.insert(idx, atmosphere_precipitable_water_content)
     # end of if ('atmosphere_precipitable_water_content', 'None') in _convertVars_:
-
+    
     # remove temporary variables from ordered vars list 
     for dvar, dSTASH in _removeVars_:
         for ovar in orderedVars:
             # removed temporary vars from ordered vars list        
             if ovar.standard_name == dvar: orderedVars.remove(ovar)
     # end of for dvar in _removeVars_:
-
+    
     # generate correct file name by removing _preExtension_
     g2filepath = fpath.split(_preExtension_)
     ncfilepath = g2filepath[0] + '.nc'
@@ -2741,9 +2906,12 @@ def doShuffleVarsInOrder(fpath):
     outstatus = False
     
     if _write2NetcdfFile_:
+        if _write2NetcdfFile_ in [True, 'True']:
+            _write2NetcdfFile_ = 'NETCDF4'  # use default as nc4.
+            # otherwise lets use user passed nc type 
         ## lets save into compressed netcdf4 file 
         try:
-            iris.fileformats.netcdf.save(orderedVars, ncfilepath, netcdf_format="NETCDF4", 
+            iris.fileformats.netcdf.save(orderedVars, ncfilepath, netcdf_format=_write2NetcdfFile_, 
                                        zlib=True, shuffle=True, least_significant_digit=6) 
         except Exception as e:
             print "ALERT !!! Error while saving orderd variables into nc!! %s" % str(e)
@@ -2787,8 +2955,9 @@ def doShuffleVarsInOrder(fpath):
     os.remove(fpath)
     
     if __wgrib2Arguments__ is not None:
-        # execute post wgrib2 command
-        cmd = "%s %s %s %s" % (wgrib2, g2filepath, __wgrib2Arguments__, wg2filepath)
+        # execute post wgrib2 command # strick to no of cpu is 2.
+        ncpu = ' -ncpu 2 ' if not '-ncpu' in __wgrib2Arguments__ else ' '
+        cmd = "%s %s %s %s" % (wgrib2, g2filepath, ncpu+__wgrib2Arguments__, wg2filepath)
         print cmd
         subprocess.call(cmd, shell=True)            
         time.sleep(10)

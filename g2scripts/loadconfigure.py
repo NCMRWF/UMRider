@@ -100,7 +100,8 @@ wgrib2Arguments = None if wgrib2Arguments in ['None', ''] else wgrib2Arguments
 callBackScript = cdic.get('callBackScript', None)
 callBackScript = None if callBackScript in ['None', ''] else callBackScript
 setGrib2TableParameters = eval(cdic.get('setGrib2TableParameters', 'None'))
-write2NetcdfFile = eval(cdic.get('write2NetcdfFile', 'False'))
+write2NetcdfFile = cdic.get('write2NetcdfFile', 'False')
+write2NetcdfFile = eval(write2NetcdfFile) if write2NetcdfFile in ['True', 'False'] else write2NetcdfFile
 
 if soilFirstSecondFixedSurfaceUnit not in ('cm', 'mm'):
     raise ValueError("soilFirstSecondFixedSurfaceUnit takes either 'cm' or 'mm'")

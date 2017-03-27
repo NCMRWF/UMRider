@@ -123,12 +123,12 @@ def cubeAverager(tmpCube, action='mean', dt='1 hour',
 # end of def cubeAverager(...):
 
 
-def cubeSubtractor(cube, otherCube, standard_name=None, 
+def cubeAddSubtractor(cube, otherCube, action='add', standard_name=None, 
                         long_name=None, removeSTASH=True):
     '''
     iris.analysis.maths.subtract doesnt serving out purpose.
-    So this cubeSubtractor subtract two cubes and set all necessary meta 
-    information.
+    So this cubeAddSubtractor Additiion/subtraction two cubes and set all 
+    necessary meta information.
 
     Arulalan.T
     12-Fen-2016
@@ -141,22 +141,26 @@ def cubeSubtractor(cube, otherCube, standard_name=None,
     sname = standard_name if standard_name else cube.standard_name
     cm = cube.cell_methods[0] if cube.cell_methods else None 
     unit = cube.units 
-    # do the simple substraction
-    subtracted = cube.data - otherCube.data
+    if action in ['add', 'sum', 'addition']:
+        # do the simple addition
+        resultant = cube.data - otherCube.data
+    elif action in ['sub', 'remove', 'subtraction']:
+        # do the simple substraction
+        resultant = cube.data - otherCube.data
     # set fill_value 
-    numpy.ma.set_fill_value(subtracted, 9.999e+20)    
-    subtracted = iris.cube.Cube(data=subtracted, units=unit, standard_name=sname, 
+    numpy.ma.set_fill_value(resultant, 9.999e+20)    
+    resultant = iris.cube.Cube(data=resultant, units=unit, standard_name=sname, 
                        long_name=lname, attributes=attr, cell_methods=(cm,))
     idx = 0
     if timeDimension:
-        subtracted.add_dim_coord(cube.coords('time')[0], idx)
+        resultant.add_dim_coord(cube.coords('time')[0], idx)
         idx += 1        
-    subtracted.add_dim_coord(cube.coords('latitude')[0], idx)
-    subtracted.add_dim_coord(cube.coords('longitude')[0], idx+1)
-    for axc in cube.aux_coords: subtracted.add_aux_coord(axc)    
-    # return the updated, subtracted cube
-    return subtracted
-# end of def cubeSubtractor(...):
+    resultant.add_dim_coord(cube.coords('latitude')[0], idx)
+    resultant.add_dim_coord(cube.coords('longitude')[0], idx+1)
+    for axc in cube.aux_coords: resultant.add_aux_coord(axc)    
+    # return the updated, resultant cube
+    return resultant
+# end of def cubeAddSubtractor(...):
 
 def cubeCummulator(cubes, standard_name=None, long_name=None, unit=None,
                     removeSTASH=False, addZerosFirstCube=True):

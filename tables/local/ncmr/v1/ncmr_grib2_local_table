@@ -41,10 +41,13 @@
 0:1:0:10:29:1:1:194:EVARCA:Evaporation Rate From Canopy:kg m-2 s-1
 0:1:0:10:29:1:1:195:EVAROS:Evaporation Rate From Open Sea:kg m-2 s-1
 0:1:0:10:29:1:1:196:DENRR:Density * R * R: 
+0:1:0:10:29:1:4:192:NSWRFC:Net Short Wave Radiation Flux Corrected:W m-2
 0:1:0:10:29:1:4:194:DUVB:Direct UV-B Solar Flux:W m-2
-0:1:0:10:29:1:4:198:CSUSF:Clear Sky Upward Solar Flux:W m-2
-0:1:0:10:29:1:5:195:CSULF:Clear Sky Upward Long Wave Flux:W m-2
-0:1:0:10:29:1:5:192:CSSDLF:Clear Sky Surface Downward Long Wave Flux:W m-2
+0:1:0:10:29:1:4:196:CSUSFS:Clear Sky Downward Solar Flux at Surface:W m-2
+0:1:0:10:29:1:4:197:CSULFS:Clear Sky Upward Solar Flux at Surface:W m-2
+0:1:0:10:29:1:4:198:CSUSFT:Clear Sky Upward Solar Flux at TOA:W m-2
+0:1:0:10:29:1:5:195:CSULFT:Clear Sky Upward Long Wave Flux at TOA:W m-2
+0:1:0:10:29:1:5:192:CSDLFS:Clear Sky Downward Long Wave Flux at Surface:W m-2
 3:1:0:10:29:1:1:192:DAOT038:Dust Aerosol Optical Thickness at 0.38 µm:unitless
 3:1:0:10:29:1:1:193:DAOT044:Dust Aerosol Optical Thickness at 0.44 µm:unitless
 3:1:0:10:29:1:1:194:DAOT055:Dust Aerosol Optical Thickness at 0.55 µm:unitless
@@ -58,4 +61,7 @@
 0:1:0:10:29:1:6:204:TCDVFA:Total Cloud Volume Fraction in Atmosphere Layer:%
 0:1:0:10:29:1:6:205:LCDVFA:Liquid Cloud Volume Fraction in Atmosphere Layer:%
 0:1:0:10:29:1:6:206:ICDVFA:Ice Cloud Volume Fraction in Atmosphere Layer:%
+2:1:0:10:29:1:0:231:SSFCWROR:Sub Surface Water Runoff Rate :kg m-2 s-1
+2:1:0:10:29:1:0:232:SUFCWR:Surface Upward Water Rate :kg m-2 s-1
+2:1:0:10:29:1:0:193:DHFS:Downward Heat Flux in Soil:W m-2
 * ncmr grib2 local table entries end  

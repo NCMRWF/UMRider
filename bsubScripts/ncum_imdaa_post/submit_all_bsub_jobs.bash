@@ -49,3 +49,16 @@ sleep 1
 
 bsub < ncum_imdaa_regional_post_reanl_2df_18Z.bash
 sleep 1
+
+# flux fieldds
+bsub < ncum_imdaa_regional_post_reanl_flux_00Z.bash
+sleep 1
+
+bsub < ncum_imdaa_regional_post_reanl_flux_06Z.bash
+sleep 1
+
+bsub < ncum_imdaa_regional_post_reanl_flux_12Z.bash
+sleep 1
+
+bsub < ncum_imdaa_regional_post_reanl_flux_18Z.bash
+sleep 1

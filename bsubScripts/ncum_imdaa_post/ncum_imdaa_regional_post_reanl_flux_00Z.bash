@@ -16,15 +16,12 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[1]}" )" && pwd )"
 # get the absolute path of the local table 
 
 # get the absolute path of the script for forecast 00utc
-g2scripts_absolute_dir="/gpfs2/home/umfcst/ShortJobs/UMRider/UMRider-2.0.1/g2scripts/"
-
 g2scripts_absolute_dir="/gpfs2/home/umdas/UMRider/g2scripts/"
-g2script=$g2scripts_absolute_dir/um2grb2_anl_06Z.py
+g2script=$g2scripts_absolute_dir/um2grb2_anl_00Z.py
 
 # export the configure paths to needed variables
-export UMRIDER_SETUP=$DIR/ncum_imdaa_regional_post_2df_setup.cfg
-export UMRIDER_VARS=$DIR/ncum_imdaa_regional_post_2df_vars.cfg
-export GRIB2TABLE=$localTable
+export UMRIDER_SETUP=$DIR/ncum_imdaa_regional_post_flux_setup.cfg
+export UMRIDER_VARS=$DIR/ncum_imdaa_regional_post_flux_vars.cfg
 
 export GRIB2TABLE=/gpfs2/home/umtid/UMRider/tables/local/ncmr/v1/ncmr_grib2_local_table
 
@@ -37,6 +34,5 @@ echo "export GRIB2TABLE="$GRIB2TABLE
 #source "$DIR/umtid_bashrc"
 # execute the script
 #python $g2script
-
 /gpfs2/home/arulalan/miniconda2/envs/iris-1.10.dev1/bin/python $g2script
 
