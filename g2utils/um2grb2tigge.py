@@ -292,7 +292,7 @@ _ncmrGrib2LocalTableVars_ = ['fog_area_fraction',
                             'toa_outgoing_shortwave_flux_assuming_clear_sky',
                   'atmosphere_optical_thickness_due_to_dust_ambient_aerosol',
                      'atmosphere_mass_content_of_dust_dry_aerosol_particles',
-                               'cloud_area_fraction_assuming_random_overlap',
+#                               'cloud_area_fraction_assuming_random_overlap',
                        'cloud_area_fraction_assuming_maximum_random_overlap',]
 
 ## Define _maskOverOceanVars_
@@ -385,10 +385,10 @@ ncumSTASH_tiggeVars = {
 ('toa_outgoing_longwave_flux', 'm01s02i205'): ('time_integrated_outgoing_long_wave_radiation', 'ttr', None), # intermediate file 
 ('time_integrated_toa_outgoing_longwave_flux', 'm01s02i205'): ('time_integrated_outgoing_long_wave_radiation', 'ttr', 'W m-2 s'),
 
+('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'): ('total_cloud_cover', 'tcc', '%'),
+('snowfall_amount', 'm01s00i023'): ('snow_depth_water_equivalent', 'sd', 'kg m-2')
 ######################## END OF TIGGE-VALID-VARS-IN-BOTH-NCUM-DETERMINISTIC-ENSEMBLES ################
 
-######################## BEGIN OF TIGGE-VALID-VARS-ONLY-AVAILABLE-IN-DETERMINISTIC ###################
-('cloud_area_fraction_assuming_maximum_random_overlap', 'm01s09i217'): ('total_cloud_cover', 'tcc', '%'),
 ### Doubts fluxes input needs to be divided by no of sec in the 3-hour or 1-hour 
 ## upward, dowward , + / - ???
 ######################## END OF TIGGE-VALID-VARS-ONLY-AVAILABLE-IN-DETERMINISTIC ###################
@@ -459,6 +459,23 @@ def getTiggeFileName(cube):
                                         tt, ll, ssss, nnn, llll, tiggeParam])
     return outfilename, tiggeParam
 # end of def getTiggeFileName(cube, datatype):
+
+def convertSoilVarto20cm(cube):
+
+     # HEre we are converting soil temp into 20cm.
+     # https://software.ecmwf.int/wiki/display/TIGGE/Soil+temperature
+     # st = ( 7 * T_1 + 13 * T_2 )/20....
+     # In NCUM it make 10 cm, 35 cm, 1 m, 2 m.
+     # So for NCUM, it would be 
+     # st = ( 10 * T_1 + 10 * T_2 )/20 -> (( T_1 + T_2 ) * 10)/20
+     # -> st = (T_1 + T_2 )/2  -> (T_1 + T_2)*0.5
+     # dimensions are realization, soil_model_level_number, lat, lon 
+     cube[0].data = (cube[0].data + cube[1].data) * 0.5
+     cube = cube[0] # take the first level alone (which is now top 20 cm)
+     if cube.coords('soil_model_level_number'): cube.remove_coord('soil_model_level_number')
+     if cube.coords('depth'): cube.remove_coord('depth')
+     return cube
+# end of def convertSoilVarto20cm(cube):
 
 # start definition #5
 def regridAnlFcstFiles(arg):
@@ -709,7 +726,13 @@ def regridAnlFcstFiles(arg):
             
             # extract pressure levels
             if pressureConstraint and tmpCube.coords('pressure'): 
-                tmpCube = tmpCube.extract(pressureConstraint)
+                if (varName, varSTASH) == ('geopotential_height', 'm01s16i202'):
+                    # extract 50 hPa only to gh variable for TIGGE
+                    pressureC = iris.Constraint(pressure=lambda cell: 
+                                 int(cell.point) in _requiredPressureLevels_+[50])
+                    tmpCube = tmpCube.extract(pressureC) 
+                else:
+                    tmpCube = tmpCube.extract(pressureConstraint)
             # ene of if pressureConstraint and tmpCube.coords('pressure'): 
             
             if __LPRINT__: print "extract end", infile, fhr, varName
@@ -724,14 +747,7 @@ def regridAnlFcstFiles(arg):
                 print "- min", tmpCube.data.min(), "max", tmpCube.data.max(),
                 print "has_lazy_data =", tmpCube.has_lazy_data()
             # end of if tmpCube.has_lazy_data():
-            
-            if (varName, varSTASH) == ('snowfall_amount', 'm01s00i023'):
-                # the snowfall_amount need to be changed as 
-                # liquid_water_content_of_surface_snow by convert it into
-                # water equivalent of snow amount.                    
-                umfcs._convert2WEASD(tmpCube)
-            # end of if (varName, varSTASH) == ('snowfall_amount', 'm01s00i023'):
-            
+                                    
             if doMultiHourlyMean and (tmpCube.coords('forecast_period')[0].shape[0] > 1):              
                 # grab the variable which is f(t,z,y,x)
                 # tmpCube corresponds to each variable for the SYNOP hours from
@@ -862,6 +878,11 @@ def regridAnlFcstFiles(arg):
                 # keep the fill_value / missingValue as 9.999e+20 only.
                 numpy.ma.set_fill_value(regdCube.data, 9.999e+20)    
             # end of if exmode == 'mask':
+            
+            if (varName, varSTASH) == ('soil_temperature', 'm01s03i238'):
+                # convert to 20cm layer as per TIGGE
+                regdCube = convertSoilVarto20cm(regdCube)
+            # end of if (varName, varSTASH) == ('soil_temperature', 'm01s03i238'):        
                         
             if __fillFullyMaskedVars__ is not None and isinstance(regdCube.data, numpy.ma.masked_array):
                 # yes, it is ma array
@@ -897,18 +918,7 @@ def regridAnlFcstFiles(arg):
             regdData.add_aux_coord(fp)
             regdData.add_aux_coord(ft)
             regdData.add_aux_coord(t)
-            
-#            # add cell_methods to the ensembleData                        
-#            if regdCube.cell_methods:
-#                if (varName, varSTASH) in _accumulationVars_:
-#                    # The following variables cell_methods should show accumulated/sum, but 
-#                    # UM pp code doesnt support for accumulation. So lets fix it here ! 
-#                    cm = iris.coords.CellMethod('sum', ('time',), 
-#                                   intervals=('1 hour',), comments=('6 hour accumulation',))
-#                    regdData.cell_methods = (cm)
-#                else:             
-#                    regdData.cell_methods = (regdCube.cell_methods[0])
-            
+                        
             print regdData
             # make memory free 
             
@@ -960,45 +970,8 @@ def regridAnlFcstFiles(arg):
                                            __utc__, _preExtension_) 
             # get the file full name except last extension, for the purpose
             # of writing intermediate nc files
-            ofname = outFn.split(fileExtension)[0]                    
-            ncfile = False
-            if regdData.coords('soil_model_level_number'):
-                # NOTE : THIS SECTION WILL WORKS ONLY FOR SOIL MOISTURE AND
-                # SOIL TEMPERATUE AT 4 LAYERS, NOT FOR SINGLE LAYER OR 
-                # NOT FOR Root zone Soil Moisture Content !!!
-                 
-                # Get soil_model_level_number coords from the cube.
-                # We need to update this variable, which will be replicated
-                # in the cube attributes. By default iris-1.9 will not 
-                # support to handle soil_model_level_number, so we need to 
-                # tweak it by following way.
-                depth_below_land_surface = regdData.coords('soil_model_level_number')[0]
-                umfcs._updateDepthBelowLandSurfaceCoords4Levs(depth_below_land_surface)
-                if __LPRINT__: print "depth_below_land_surface", depth_below_land_surface
-                
-                if regdData.standard_name == 'moisture_content_of_soil_layer':
-                    # pass the vertical layer depth in millimeter
-                    umfcs._convert2VolumetricMoisture(regdData, 
-                                        levels=[100.0, 250.0, 650.0, 1000.0])
-                    print "converted four layer soil moisture to volumetric"
-                # end of if regdData.standard_name == 'moisture_content_of_soil_layer':                
-                               
-            # end of if regdData.coords('soil_model_level_number'):
-            
-            if (varName, varSTASH) == ('soil_moisture_content', 'm01s08i208'):
-                # NOTE : THIS SECTION WILL WORKS ONLY FOR SINGLE LAYERED 
-                # Root zone Soil Moisture Content, NOT FOR 4 LAYERS.
-                
-                # By default this variable doesn't have any vertical coords 
-                # inforomation. So we must add explicitly by ourself.
-                umfcs._createDepthBelowLandSurfaceCoords1Lev(regdData)
-                
-                # Convert this into volumetirc soil moisture. This varibale
-                # vertical level at 2meter in millimeter.
-                umfcs._convert2VolumetricMoisture(regdData, levels=2000.0)
-                print "converted single layer soil moisture to volumetric"                
-            # end of if (varName, varSTASH) in (...):                       
-                        
+            ofname = outFn.split(fileExtension)[0]
+
             try:                
                 save_tigge_tweaked_messages([regdData])                
             except Exception as e:
@@ -1063,6 +1036,7 @@ def save_tigge_tweaked_messages(cubeList):
                 # setting ensemble no   
                 ensno = int(cube.coord('realization').points[0])                
                 gribapi.grib_set(grib_message, "perturbationNumber", ensno)
+                memno = str(ensno).zfill(3)  # directory member number 
                 # no encoding at present in Iris, set to missing
                 gribapi.grib_set(grib_message, "numberOfForecastsInEnsemble", 255)
                 if ensno:
@@ -1077,6 +1051,7 @@ def save_tigge_tweaked_messages(cubeList):
                 # ensembles tweak end
             else:
                 # deterministic forecast 
+                memno = 'fcs'  # directory member number 
                 if cube.coord("forecast_period").bounds is not None:  
                     # if we set bounds[0][0] = 0, wgrib2 gives error for 0 fcst time.
                     # so we need to set proper time intervals 
@@ -1088,29 +1063,7 @@ def save_tigge_tweaked_messages(cubeList):
                     # http://www.cosmo-model.org/content/model/documentation/grib/pdtemplate_4.11.htm 
                     gribapi.grib_set(grib_message, "typeOfTimeIncrement", 2)
             # end of if cube.coord("realization"):
-            
-            if cube.coords('depth_below_land_surface') or cube.coords('depth'):                
-                if __soilFirstSecondFixedSurfaceUnit__ == 'cm':
-                    # scaleFactorOfFirstFixedSurface as 2, equivalent to divide
-                    # the depth_below_land_surface.points by 100. So that we can 
-                    # be sure that grib2 has 0.1m, 0.35m, 1m & 3m. Otherwise, we 
-                    # will endup with 0m, 0m, 1m & 3m and finally will loose 
-                    # information about decimal values of levels.
-                    gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 2)
-                    gribapi.grib_set(grib_message, "scaleFactorOfSecondFixedSurface", 2)
-                    print "reset scaleFactorOfFirstFixedSurface as 2"
-                    print "reset scaleFactorOfSecondFixedSurface as 2"
-                elif __soilFirstSecondFixedSurfaceUnit__ == 'mm':
-                    # scaleFactorOfFirstFixedSurface as 3, equivalent to divide
-                    # the depth_below_land_surface.points by 1000. So that we can 
-                    # be sure that grib2 has 0.1m, 0.35m, 1m & 3m. Otherwise, we 
-                    # will endup with 0m, 0m, 1m & 3m and finally will loose 
-                    # information about decimal values of levels.
-                    gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 3)
-                    gribapi.grib_set(grib_message, "scaleFactorOfSecondFixedSurface", 3)
-                    print "reset scaleFactorOfFirstFixedSurface as 3"
-                    print "reset scaleFactorOfSecondFixedSurface as 3"
-                # end of if __soilFirstSecondFixedSurfaceUnit__ == 'cm':
+                        
             # end of if cube.coords('depth_below_land_surface'):    
             if cube.standard_name or cube.long_name:
                 if cube.standard_name:
@@ -1128,7 +1081,16 @@ def save_tigge_tweaked_messages(cubeList):
                         # we have to explicitly re-set the type of first surfcae
                         # as tropopause i.e. 7 (WMO standard)
                         gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 7) 
-                    # end of if cube.standard_name.startswith('tropopause'):                     
+                    # end of if cube.standard_name.startswith('tropopause'):  
+                    if cube.standard_name.startswith('soil_temperature'):
+                        # as per TIGGE standard
+                        gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 106) 
+                        gribapi.grib_set(grib_message, "typeOfSecondFixedSurface", 106) 
+                        gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 0)
+                        gribapi.grib_set(grib_message, "scaleFactorOfSecondFixedSurface", 1)
+                        gribapi.grib_set(grib_message, "scaledValueOfFirstFixedSurface", 0)
+                        gribapi.grib_set(grib_message, "scaledValueOfSecondFixedSurface", 2)
+                    # end of if cube.standard_name.startswith('soil_temperature'):
                 # end of if cube.standard_name:
 
                 if cube.long_name: 
@@ -1181,11 +1143,11 @@ def save_tigge_tweaked_messages(cubeList):
             # end of if __setGrib2TableParameters__:
             print "Tweaking end ", cube.standard_name
                         
-            # get tigge statndard filename 
+            # get tigge statndard filename
             outgname, sname = getTiggeFileName(cube)
-            outgdir = os.path.join(_opPath_, sname)
-            createDirWhileParallelRacing(outgdir)
-            outgpath = os.path.join(outgdir, outgname) # Join the outpath 
+            outgdir = os.path.join(_opPath_, *[memno, sname])
+            createDirWhileParallelRacing(outgdir)            
+            outgpath = os.path.join(outgdir, outgname) # Join the outpath & outfilename
             print "lets save into", outgpath
             cstash = str(cube.attributes.get('STASH', 'None'))
             if (cube.standard_name, cstash) in _accumulationVars_:
@@ -1203,7 +1165,7 @@ def makeTotalCummulativeVars(arg):
     global _opPath_, _current_date_, __start_long_fcst_hour__, __end_long_fcst_hour__  
     
     svar, sname, umfcstype, ens = arg 
-
+    ens = ens.zfill(3)
     if svar == 'tp':
         lname = 'time_cummulated_precipitation'
         rstash = True
@@ -1212,8 +1174,8 @@ def makeTotalCummulativeVars(arg):
         rstash = False
     
     fname = 'z_tigge_c_dems_' +_current_date_+ '000000_glob_test_'  # TIGGE TEST 
-    fname += umfcstype+ '_sl_%s_' + ens.zfill(3) + '_0000_' + svar + '.nc' 
-    infiles = [os.path.join(*[_opPath_, svar, fname % str(t).zfill(4)]) 
+    fname += umfcstype+ '_sl_%s_' + ens + '_0000_' + svar + '.nc' 
+    infiles = [os.path.join(*[_opPath_, ens, svar, fname % str(t).zfill(4)]) 
                         for t in range(6, __end_long_fcst_hour__+1, 6)]
 
     try:
@@ -1306,6 +1268,8 @@ def convertFilesInParallel(fnames, ftype):
     ## get the no of files and 
     nprocesses = len(fnames)
     if not nprocesses: raise ValueError("Got 0 fnames, couldn't make parallel !")
+    maxprocess = mp.cpu_count()
+    if nprocesses > maxprocess: nprocesses = maxprocess
     # lets create no of parallel process w.r.t no of files.
 
     # parallel begin - 1 
@@ -1946,8 +1910,14 @@ def packEnsembles(arg, **kwarg):
         # Got variable successfully!    
         ensCube = ensCube[0]        
         # extract pressure levels
-        if pressureConstraint and ensCube.coords('pressure'): 
-            ensCube = ensCube.extract(pressureConstraint)
+        if pressureConstraint and ensCube.coords('pressure'):
+            if (varName, varSTASH) == ('geopotential_height', 'm01s16i202'):  
+                # extract 50 hPa only to gh variable for TIGGE
+                pressureC = iris.Constraint(pressure=lambda cell: 
+                             int(cell.point) in _requiredPressureLevels_+[50])
+                ensCube = ensCube.extract(pressureC)     
+            else:
+                ensCube = ensCube.extract(pressureConstraint)
         # ene of if pressureConstraint and tmpCube.coords('pressure'): 
 
         if ensCube.has_lazy_data():
@@ -2063,7 +2033,12 @@ def packEnsembles(arg, **kwarg):
             # keep the fill_value / missingValue as 9.999e+20 only.
             numpy.ma.set_fill_value(regdCube.data, 9.999e+20)    
         # end of if exmode == 'mask':
-                    
+        
+        if (varName, varSTASH) == ('soil_temperature', 'm01s03i238'):
+            # convert to 20cm layer as per TIGGE
+            regdCube = convertSoilVarto20cm(regdCube)
+        # end of if (varName, varSTASH) == ('soil_temperature', 'm01s03i238'):            
+        
         if __fillFullyMaskedVars__ is not None and isinstance(regdCube.data, numpy.ma.masked_array):
             # yes, it is ma array
             if regdCube.data.mask.all():
@@ -2150,43 +2125,6 @@ def packEnsembles(arg, **kwarg):
         del regdCube  
     
         print "To ensembleData shape", ensembleData.shape  
-
-#        # get the regridded ensembles meta data 
-#        varName, varSTASH, fcstTm, refTm, lat1, lon1 = getCubeAttr(ensembleData)
-#        
-#        if fcstTm.bounds is not None:                
-#            # this is needed for forecast 00th simulated_hr
-#            # get the last hour from bounds
-#            hr = str(int(fcstTm.bounds[-1][-1]))
-#            if __LPRINT__: print "Bounds comes in ", hr, fcstTm.bounds                        
-#        else:
-#            # get the fcst time point 
-#            # this is needed for analysis/forecast 00th simulated_hr
-#            hr = str(int(fcstTm.points))
-#            if __LPRINT__: print "points comes in ", hr 
-#        # end of if fcstTm.bounds:
-        
-#        outFileNameStructure = __fcstFileNameStructure__
-#        # get the out fileName Structure based on pre / user defined indecies                       
-#        outFnIndecies = __getAnlFcstFileNameIndecies__(outFileNameStructure)
-
-#        # get the file name extension
-#        fileExtension = outFileNameStructure[-1]  
-        
-#        if __fcst_step_hour__ == 24:
-#            # make unique file name becase we are running in parallel            
-#            if varName == 'air_temperature_maximum':
-#                outFn = varSTASH + '-max_'+ outFn
-#            elif varName == 'air_temperature_minimum':
-#                outFn = varSTASH + '-min_'+ outFn
-#            else:
-#                outFn = varSTASH + '_'+ outFn  # suits for all other vars
-#        # end of if __fcst_step_hour__ == 24:
-                           
-        ncfile = False
-               
-        # append out grib2 files for the purpose of creating ctl files.
-        
         print ensembleData
         
         try:                
@@ -2236,7 +2174,7 @@ def packEnsemblesInParallel(arg):
     if _convertVars_:
         # load only needed variables from this file as well sort as per user specified ordered vars!
         varNamesSTASH = [vns for vns in _convertVars_ if vns in varNamesSTASH]
-    
+           
     if not varNamesSTASH:
         print "No varibale selected to load from the file '%s' " % fname
         if __LPRINT__: 
@@ -2250,13 +2188,6 @@ def packEnsemblesInParallel(arg):
     
     for varName, varSTASH in varNamesSTASH:        
         for fhr in fcstHours:            
-            # the following vars doesnt have 0th time value, but it has 6th hour value.
-            if (varName, varSTASH) in [('moisture_content_of_soil_layer', 'm01s08i223'), 
-                                        ('soil_temperature', 'm01s03i238'),
-                                        ('air_temperature', 'm01s03i236'),
-                                        ('dew_point_temperature', 'm01s03i250'),
-                                        ('x_wind', 'm01s03i209'),  
-                                        ('y_wind', 'm01s03i210')] and not fhr: continue
             allConstraints = [varName, varSTASH, fhr]     
             ensembleFiles_allConstraints_list.append((ensembleFiles, allConstraints))
     # end of for varName, varSTASH in varNamesSTASH:      
@@ -2349,6 +2280,7 @@ def convertEPSFcstFiles(inPath, outPath, tmpPath, **kwarg):
     overwrite = kwarg.get('overwrite', False)
     lprint = kwarg.get('lprint', False)
     convertVars = kwarg.get('convertVars', None)
+    convertVarIdx = kwarg.get('convertVarIdx', None)
     latitude = kwarg.get('latitude', None)
     longitude = kwarg.get('longitude', None)
     pressureLevels = kwarg.get('pressureLevels', None)
@@ -2369,6 +2301,8 @@ def convertEPSFcstFiles(inPath, outPath, tmpPath, **kwarg):
     
     # assign out file type in global variable
     __outFileType__ = 'fcst'
+    # set only needed convert variable by selecting appropriate index passed by user
+    if convertVarIdx and convertVars: convertVars = [convertVars[convertVarIdx-1]]
     # assign the convert vars list of tuples to global variable
     if convertVars: _convertVars_ = convertVars
     # assign the analysis file name structure

@@ -10,7 +10,7 @@ Written by : Arulalan.T
 Date : 07.Dec.2015
 """
 
-import os, sys, datetime
+import os, sys, datetime, getopt
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                  debug, targetGridResolution, overwriteFiles, neededVars, \
@@ -49,6 +49,29 @@ elif isinstance(date, str):
     print "Got single string date"
     print "So um2grb2 fcst 00Z conversion - on %s" % date
 # end of if isinstance(date, tuple):
+
+helpmsg = 'um2grb2_fcst_00Z.py --start_long_fcst_hour=48 --end_long_fcst_hour=240'
+    
+try:
+    opts, args = getopt.getopt(sys.argv[1:], "s:e:", ["start_long_fcst_hour=","end_long_fcst_hour="])
+except getopt.GetoptError:
+    print helpmsg
+    opts = [('', ''),] # just store empty strins.
+    print "WARNING : No command line arguments was passed. So just using configure setupfile itself."
+
+for opt, arg in opts:
+    if opt == '-h':
+        print helpmsg
+        sys.exit()
+    elif opt in ("-s", "--start_long_fcst_hour"):
+        start_long_fcst_hour = int(arg)
+        print "WARNING : start_long_fcst_hour option got overridden by command line argument"
+        print "Updated 'start_long_fcst_hour = %d' " % start_long_fcst_hour
+    elif opt in ("-e", "--end_long_fcst_hour"):
+        end_long_fcst_hour_at_00z = int(arg)
+        print "WARNING : end_long_fcst_hour option got overridden by command line argument" 
+        print "Updated 'end_long_fcst_hour = %d' " % end_long_fcst_hour_at_00z
+# end of for opt, arg in opts:
 
 sDay = datetime.datetime.strptime(startdate, "%Y%m%d")
 eDay = datetime.datetime.strptime(enddate, "%Y%m%d")

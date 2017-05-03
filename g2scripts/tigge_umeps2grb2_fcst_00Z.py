@@ -20,11 +20,12 @@ from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
                  start_long_fcst_hour, fcst_step_hour, grib1FilesNameSuffix, \
                  removeGrib2FilesAfterGrib1FilesCreated, pressureLevels, \
                  callBackScript, setGrib2TableParameters, targetGridFile, \
-                 fillFullyMaskedVars, extraPolateMethod, wgrib2Arguments
+                 fillFullyMaskedVars, extraPolateMethod, wgrib2Arguments, \
+                 convertVarIdx
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py
-    from g2utils.umeps2grb2 import convertFcstFiles
+    from g2utils.um2grb2tigge import convertEPSFcstFiles
     print "INFO : imported g2utils.um2grb2 from system python"
 elif loadg2utils == 'local':
     # Load g2utils from previous directory for the operational purpose, 
@@ -51,7 +52,7 @@ elif isinstance(date, str):
 helpmsg = 'umeps2grb2_fcst_00Z.py --start_long_fcst_hour=48 --end_long_fcst_hour=240'
     
 try:
-    opts, args = getopt.getopt(sys.argv[1:], "s:e:", ["start_long_fcst_hour=","end_long_fcst_hour="])
+    opts, args = getopt.getopt(sys.argv[1:], "s:e:i", ["start_long_fcst_hour=","end_long_fcst_hour=", "convert_var_index="])
 except getopt.GetoptError:
     print helpmsg
     opts = [('', ''),] # just store empty strins.
@@ -69,6 +70,11 @@ for opt, arg in opts:
         end_long_fcst_hour_at_00z = int(arg)
         print "WARNING : end_long_fcst_hour option got overridden by command line argument" 
         print "Updated 'end_long_fcst_hour = %d' " % end_long_fcst_hour_at_00z
+    elif opt in ("-i", "--convert_var_index"):
+        print "convertVarIdx = ", arg 
+        convertVarIdx = int(arg)
+        print "WARNING : convertVarIdx option got overridden by command line argument" 
+        print "Updated 'convertVarIdx = %d' " % convertVarIdx
 # end of for opt, arg in opts:
 
 sDay = datetime.datetime.strptime(startdate, "%Y%m%d")
@@ -83,6 +89,7 @@ while sDay <= eDay:
                                 targetGridFile=targetGridFile,
                     targetGridResolution=targetGridResolution, 
              date=startdate, utc='00', convertVars=neededVars, 
+                                  convertVarIdx=convertVarIdx,
                   latitude=requiredLat, longitude=requiredLon,
                                 pressureLevels=pressureLevels,
                           extraPolateMethod=extraPolateMethod,

@@ -164,7 +164,7 @@ GRIB2_TO_CF = {
     G2Param(2, 192, 151, 158): CFName(None, 'precipitation_minus_evaporation', 'kg m-2 s-1' ), # 151158
     G2Param(2, 0, 1, 65): CFName('rainfall_flux', 'rainfall_rate', 'kg m-2 s-1'), # 260058
     G2Param(2, 0, 3, 18): CFName('atmosphere_boundary_layer_thickness', None, 'm'), # WMO
-#    G2Param(2, 0, 1, 13): CFName('snowfall_amount', None, 'kg m-2'), # WMO  
+    G2Param(2, 0, 1, 60): CFName('snowfall_amount', None, 'kg m-2'), # TIGGE
     G2Param(2, 0, 1, 192): CFName('fog_area_fraction', None, '%'), # NCMRWF Local
     G2Param(2, 0, 20, 102): CFName('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', None, '1'), # WMO
     
@@ -185,7 +185,7 @@ GRIB2_TO_CF = {
     G2Param(2, 0, 1, 3): CFName(None, 'atmosphere_precipitable_water_content', 'kg m-2'),
     
     # G2Param(grib version, discipline, parameter category, parameter no, typeOfFirstFixedSurface):
-    G2Param(2, 0, 1, 60, 1): CFName(None, 'snow_depth_water_equivalent', 'kg m-2'), # 228141
+#    G2Param(2, 0, 1, 60, 1): CFName(None, 'snow_depth_water_equivalent', 'kg m-2'), # 228141
 #    G2Param(2, 2, 0, 0, 1): CFName(None, 'land_sea_mask', '(0 - 1)'), # 172
 #    G2Param(2, 0, 3, 5, 1): CFName(None, 'orography', 'm'), # 228002
     G2Param(2, 10, 2, 8, 1): CFName(None, 'sea_ice_temperature', 'K'), # 500172
@@ -196,7 +196,9 @@ GRIB2_TO_CF = {
     G2Param(2, 0, 1, 22, 105, 0): CFName(None, 'cloud_mixing_ratio', 'kg kg-1'), # 500100
     G2Param(2, 0, 19, 11, 105, 0): CFName(None, 'turbulent_kinetic_energy', 'J kg-1'), # 500158
     
-    G2Param(2, 0, 6, 202): CFName(None, 'cloud_area_fraction_assuming_random_overlap', '%'), # NCMRWF Local
+    G2Param(2, 0, 6, 1): CFName(None, 'cloud_area_fraction_assuming_random_overlap', '%'), # TIGGE
+    
+#    G2Param(2, 0, 6, 202): CFName(None, 'cloud_area_fraction_assuming_random_overlap', '%'), # NCMRWF Local
     G2Param(2, 0, 6, 203): CFName(None, 'cloud_area_fraction_assuming_maximum_random_overlap', '%'), # NCMRWF Local
     
     ### NCEP map begin ###
@@ -298,7 +300,7 @@ CF_TO_GRIB2 = {
     CFName('sea_water_x_velocity', None, 'm s-1'): G2Param(2, 10, 1, 2),
     CFName('sea_water_y_velocity', None, 'm s-1'): G2Param(2, 10, 1, 3),
     CFName('snowfall_flux', 'snowfall_rate', 'kg m-2 s-1'): G2Param(2, 0, 1, 53),
-    CFName('soil_temperature', None, 'K'): G2Param(2, 2, 0, 2),
+    CFName('soil_temperature', None, 'K'): G2Param(2, 2, 0, 2), # TIGGE
     CFName('specific_humidity', None, 'kg kg-1'): G2Param(2, 0, 1, 0),
     CFName('surface_air_pressure', None, 'Pa'): G2Param(2, 0, 3, 0),
     CFName('surface_altitude', None, 'm'): G2Param(2, 2, 0, 7),
@@ -378,6 +380,8 @@ CF_TO_GRIB2 = {
     CFName('toa_outgoing_shortwave_flux_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 198), # NCMRWF Local
     CFName('toa_outgoing_longwave_flux_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 5, 195), # NCMRWF Local
     
+    CFName('snowfall_amount', None, 'kg m-2'): G2Param(2, 0, 1, 60), # TIGGE
+    
     #WMO need to set  surface level type as tropopause (7)
     CFName('tropopause_air_pressure', None, 'Pa'): G2Param(2, 0, 3, 0, 7), # WMO
     CFName('tropopause_air_temperature', None, 'K'): G2Param(2, 0, 0, 0, 7), # WMO
@@ -390,7 +394,7 @@ CF_TO_GRIB2 = {
     ### to set typeOfFirstFixedSurface for the above said varibles.
         
     # G2Param(grib version, discipline, parameter category, parameter no, typeOfFirstFixedSurface):
-    CFName(None, 'snow_depth_water_equivalent', 'kg m-2'): G2Param(2, 0, 1, 60, 1), # 228141
+#    CFName(None, 'snow_depth_water_equivalent', 'kg m-2'): G2Param(2, 0, 1, 60, 1), # 228141
 #    CFName(None, 'land_sea_mask', '(0 - 1)'): G2Param(2, 2, 0, 0, 1), # 172
     CFName(None, 'orography', 'm'): G2Param(2, 0, 3, 5, 1), # 228002  # TIGGE NEEDS IT
     CFName(None, 'sea_ice_temperature', 'K'): G2Param(2, 10, 2, 8, 1), # 500172
@@ -401,7 +405,8 @@ CF_TO_GRIB2 = {
     CFName(None, 'cloud_mixing_ratio', 'kg kg-1'): G2Param(2, 0, 1, 22, 105, 0), # 500100
     CFName(None, 'turbulent_kinetic_energy', 'J kg-1'): G2Param(2, 0, 19, 11, 105, 0), # 500158
     
-    CFName(None, 'cloud_area_fraction_assuming_random_overlap', '%'): G2Param(2, 0, 6, 202), # NCMRWF Local
+    CFName(None, 'cloud_area_fraction_assuming_random_overlap', '%'): G2Param(2, 0, 6, 1), # TIGGE
+#    CFName(None, 'cloud_area_fraction_assuming_random_overlap', '%'): G2Param(2, 0, 6, 202), # NCMRWF Local
     CFName(None, 'cloud_area_fraction_assuming_maximum_random_overlap', '%'): G2Param(2, 0, 6, 1), # TIGGE NEEDS IT
     
     ### NCEP map begin ###

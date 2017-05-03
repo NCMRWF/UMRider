@@ -215,6 +215,10 @@ if not neededVars:
 # removing the duplicates.
 neededVars = uniquifyListInOrder(neededVars)
 
+# still user can pass convertVarIdx via bsub to accept one var per node. 
+# currently configured only for tigge-eps 
+convertVarIdx = eval(cdic.get('convertVarIdx', 'None')) # index should start from 1, not 0.
+
 print "*" * 80
 print "UMtype = ", UMtype
 print "inPath = ", inPath

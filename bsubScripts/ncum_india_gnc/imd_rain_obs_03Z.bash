@@ -6,7 +6,7 @@
 #BSUB -n 16
 #BUSB -x                   # number of tasks in job
 #BSUB -R span[ptile=16]       # task per node 
-#BSUB -q small             	  # queue
+#BSUB -q ultra             	  # queue
 #BSUB -e /gpfs3/home/umfcst/UMRiderLogs/indgnc/bsub/bin2nc.obs.err.%J.hybrid     # error file name in which %J is replaced by the job ID
 #BSUB -o /gpfs3/home/umfcst/UMRiderLogs/indgnc/bsub/bin2nc.obs.00hr.out.%J.hybrid     # output file name in which %J is replaced by the job ID
 

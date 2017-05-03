@@ -56,7 +56,7 @@ except getopt.GetoptError:
     print helpmsg
     opts = [('', ''),] # just store empty strins.
     print "WARNING : No command line arguments was passed. So just using configure setupfile itself."
-#    sys.exit(2)
+
 for opt, arg in opts:
     if opt == '-h':
         print helpmsg

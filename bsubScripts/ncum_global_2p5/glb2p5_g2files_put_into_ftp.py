@@ -35,7 +35,7 @@ def putintoftp(today, outpath, oftype, utc):
     except Exception as e:
         print "Folder already exists", e
         
-    cmd = 'ssh ncmlogin3 "scp -p %s %s:/data/ftp/pub/outgoing/NCUM_GLB/2.5/%s/"' % (gfiles, ftp_server, today)
+    cmd = 'ssh ncmlogin3 "rsync -avrt %s %s:/data/ftp/pub/outgoing/NCUM_GLB/2.5/%s/"' % (gfiles, ftp_server, today)
     print cmd
     try:
         subprocess.call(cmd, shell=True)   

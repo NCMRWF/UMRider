@@ -34,4 +34,4 @@ echo "hour="${hour}
 # sourcing umtid_bashrc to load module python-uvcdat-iris!
 source "$DIR/../umtid_bashrc"
 
-python $epsMeanScript --start_long_fcst_hour=${hour} --end_long_fcst_hour=${hour} --fcst_step_hour=24
+python $epsMeanScript --start_long_fcst_hour=${hour} --end_long_fcst_hour=${hour}

@@ -63,13 +63,13 @@ if lonpoints[-1] > elon: lonpoints = lonpoints[:-1]
 # set target grid lat, lon values pair                   
 _targetGrid_ = [('latitude', latpoints), ('longitude', lonpoints)]
     
-def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_hour, stephr=24):    
+def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_hour):    
 
     inpath = os.path.join(inpath, today)
-    day = int(start_long_fcst_hour) / int(stephr)
-    pfileday = str(day).zfill(2)
-    pfilename = 'umeps_prg_1cntl_44ens_24hourly_day' + pfileday
-    needed_fname = pfilename + '_' + today + '_' + utc + 'Z' + _preExtension_ + '.grib2'    
+    pfileday = str(start_long_fcst_hour).zfill(3)
+    day = int(start_long_fcst_hour) / 24
+    pfilename = 'umeps_prg_1cntl_44ens_%s_' + pfileday
+    needed_fname = pfilename + 'hr_' + today + '_' + utc + 'Z' + _preExtension_ + '.grib2'    
     
     tDay = datetime.datetime.strptime(today, "%Y%m%d")        
     tvDay = tDay.strftime('%d%m%y')
@@ -81,7 +81,8 @@ def createENSavg_VSDB_Grib1Files(inpath, outpath, today, utc, start_long_fcst_ho
     
     ensfpath_list = []
     for varName, varSTASH  in neededVars:
-        varfilename = varSTASH + '_' + needed_fname
+        ext = '2df' if varSTASH == 'm01s16i222' else 'prs'
+        varfilename = varSTASH + '_' + needed_fname % ext
         files = [f for f in os.listdir(inpath) if f == varfilename]
         if not files: return 
         ensfpath = os.path.join(inpath, files[0])
@@ -211,10 +212,13 @@ if __name__ == '__main__':
     inpath = '/gpfs3/home/umeps/EPS/long_fcst/post/'
     outpath = '/gpfs3/home/umeps/EPS/ShortJobs/NCUM_EPS_VSDB_Input'
     
-    helpmsg = './ncumeps_create_memavg_vsdb_input.py --date=20160302 --start_long_fcst_hour=24 --end_long_fcst_hour=24 --fcst_step_hour=24'
+    inpath = '/gpfs4/home/arulalan/um2grb2/ArulTest/NCUM_EPS/'
+    outpath = '/gpfs4/home/arulalan/um2grb2/ArulTest/NCUM_EPS_VSDB'
+       
+    helpmsg = './ncumeps_create_memavg_vsdb_input.py --date=20160302 --start_long_fcst_hour=24 --end_long_fcst_hour=24'
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "d:s:e:i", ["date=",
-            "start_long_fcst_hour=", "end_long_fcst_hour=", "fcst_step_hour="])
+        opts, args = getopt.getopt(sys.argv[1:], "d:s:e", ["date=",
+            "start_long_fcst_hour=", "end_long_fcst_hour="])
     except getopt.GetoptError:
         print helpmsg
         sys.exit(2)
@@ -228,8 +232,6 @@ if __name__ == '__main__':
             start_long_fcst_hour = arg
         elif opt in ("-e", "--end_long_fcst_hour"):
             end_long_fcst_hour = arg
-        elif opt in ("-i", "--fcst_step_hour"):
-            fcst_step_hour = arg
     # end of for opt, arg in opts:
     
     if not date and os.environ.has_key('UMRIDER_STARTDATE'):
@@ -237,7 +239,7 @@ if __name__ == '__main__':
         print "date is overridden by environment variable UMRIDER_STARTDATE", date
     
     # create tar balls only if forecast & utc is 00, otherwise skip it!    
-    if oftype == 'forecast' and utc == '00' and fcst_step_hour == '24': 
+    if oftype == 'forecast' and utc == '00': 
         # pass the arg to function  
-        createENSavg_VSDB_Grib1Files(inpath, outpath, date, utc, start_long_fcst_hour, stephr=fcst_step_hour)    
+        createENSavg_VSDB_Grib1Files(inpath, outpath, date, utc, start_long_fcst_hour)    
     # end of if oftype == 'forecast' and utc == '00': 

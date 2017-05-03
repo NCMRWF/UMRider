@@ -32,11 +32,13 @@ import multiprocessing.pool as mppool
 # by the top-level multiprocessing module.
 import datetime
 from iris.time import PartialDateTime
-from cubeutils import cubeAverager, cubeSubtractor
+from cubeutils import cubeAverager, cubeAddSubtractor
 from ncum_load_rules import update_cf_standard_name
 from um2grb2 import (createDirWhileParallelRacing, getCubeData, myLog, 
              __getAnlFcstFileNameIndecies__, __genAnlFcstOutFileName__, 
-            getCubeAttr, _NoDaemonProcess, _MyPool)
+            getCubeAttr, _NoDaemonProcess, _MyPool, _convert2WEASD,
+            _updateDepthBelowLandSurfaceCoords4Levs, 
+            _convert2VolumetricMoisture)
 
 # End of importing business
 
@@ -112,6 +114,7 @@ __wgrib2Arguments__ = None
 _extraPolateMethod_ = 'auto'
 _ensemble_count_ = 44
 __UMtype__ = 'ensemble'
+__soilFirstSecondFixedSurfaceUnit__ = 'cm'
 # store out grib2 files name for the purpose of creat ctl files in parallel
 __outg2files__ = []
 # global ordered variables (the order we want to write into grib2)
@@ -179,6 +182,7 @@ _orderedVars_ = {'PressureLevel': [
 ('land_binary_mask', 'm01s00i030'),
 ('sea_ice_area_fraction', 'm01s00i031'),
 ('sea_ice_thickness', 'm01s00i032'),
+('snowfall_amount', 'm01s00i023'),
 # the snowfall_amount might be changed as 
 # liquid_water_content_of_surface_snow by convert it into
 # water equivalent of snow amount, before re-ordering itself.
@@ -374,7 +378,9 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                         ('surface_net_downward_longwave_flux', 'm01s02i201'), 
                         ('surface_upward_latent_heat_flux', 'm01s03i234'),   
                         ('surface_upward_sensible_heat_flux', 'm01s03i217'),   
-                        ('toa_outgoing_longwave_flux', 'm01s02i205')]         
+                        ('toa_outgoing_longwave_flux', 'm01s02i205'),
+                        ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
+                        ('snowfall_amount', 'm01s00i023')]         
         # the cube contains accumulated/min/max data at every 24-hours.        
         
         if hr: 
@@ -557,6 +563,50 @@ def packEnsembles(arg):
             # keep the fill_value / missingValue as 9.999e+20 only.
             numpy.ma.set_fill_value(regdCube.data, 9.999e+20)    
         # end of if exmode == 'mask':
+        
+        if (varName, varSTASH) in [('snowfall_amount', 'm01s00i023')]:
+            # the snowfall_amount need to be changed as 
+            # liquid_water_content_of_surface_snow by convert it into
+            # water equivalent of snow amount.                    
+            _convert2WEASD(regdCube)
+        # end of if (varName, varSTASH) == ('snowfall_amount', 'm01s00i023'):
+                
+        if regdCube.coords('soil_model_level_number') or regdCube.coords('depth'):
+            # NOTE : THIS SECTION WILL WORKS ONLY FOR SOIL MOISTURE AND
+            # SOIL TEMPERATUE AT 4 LAYERS, NOT FOR SINGLE LAYER OR 
+            # NOT FOR Root zone Soil Moisture Content !!!
+             
+            # Get soil_model_level_number coords from the cube.
+            # We need to update this variable, which will be replicated
+            # in the cube attributes. By default iris-1.9 will not 
+            # support to handle soil_model_level_number, so we need to 
+            # tweak it by following way.
+            depth_below_land_surface = regdCube.coords('soil_model_level_number')
+            if not depth_below_land_surface:
+                depth_below_land_surface = regdCube.coords('depth')
+            
+            depth_below_land_surface = depth_below_land_surface[0]
+            _updateDepthBelowLandSurfaceCoords4Levs(depth_below_land_surface)
+            if __LPRINT__: print "depth_below_land_surface", depth_below_land_surface
+            
+            if (regdCube.standard_name == 'moisture_content_of_soil_layer'):
+                # pass the vertical layer depth in millimeter
+                _convert2VolumetricMoisture(regdCube, 
+                                    levels=[100.0, 250.0, 650.0, 2000.0])
+                print "converted four layer soil moisture to volumetric"                
+                # We need to save this variable into nc file, why because
+                # if we saved into grib2 and then re-read it while re-ordering
+                # variables, iris couldnt load variables with 
+                # depth_below_land_surfacer properly. We need to touch the 
+                # _load_rules. So for timebeing, we saved it as seperate nc 
+                # file. In iris-1.9 we couldnt append more variables into 
+                # nc file. so we saved into muliple individual nc files, only
+                # those who have depth_below_land_surface and will be deleted
+                # after inserted properly into orderd grib2 files.
+                ncfile = True
+            # end of if regdCube.standard_name == 'moisture_content_of_soil_layer':                
+            print "after soil_model_level_number", regdCube.data 
+        # end of if regdCube.coords('soil_model_level_number'):
                     
         if __fillFullyMaskedVars__ is not None and isinstance(regdCube.data, numpy.ma.masked_array):
             # yes, it is ma array
@@ -647,7 +697,7 @@ def packEnsembles(arg):
         print "To ensembleData shape", ensembleData.shape  
 
         # get the regridded ensembles meta data 
-        varName, varSTASH, fcstTm, refTm, lat1, lon1 = getCubeAttr(ensembleData)
+        fcstTm = getCubeAttr(ensembleData)[2]
         
         if fcstTm.bounds is not None:                
             # this is needed for forecast 00th simulated_hr
@@ -674,50 +724,36 @@ def packEnsembles(arg):
         # of writing intermediate nc files
         ofname = outFn.split(fileExtension)[0] 
         
-        if __fcst_step_hour__ == 24:
-            # make unique file name becase we are running in parallel            
-            if varName == 'air_temperature_maximum':
-                outFn = varSTASH + '-max_'+ outFn
-            elif varName == 'air_temperature_minimum':
-                outFn = varSTASH + '-min_'+ outFn
-            else:
-                outFn = varSTASH + '_'+ outFn  # suits for all other vars
-        # end of if __fcst_step_hour__ == 24:
+        # make unique file name becase we are running in parallel            
+        if varName == 'air_temperature_maximum':
+            outFn = varSTASH + '-max_'+ outFn
+        elif varName == 'air_temperature_minimum':
+            outFn = varSTASH + '-min_'+ outFn
+        else:
+            outFn = varSTASH + '_'+ outFn  # suits for all other vars
                            
         ncfile = False
         print "outFn = ", outFn
-        if (varName, varSTASH) in _ncfilesVars_:
-             #other than soil_model_level_number, few variables may be 
-             #need to write into nc file and then convert to grib2. why 
-             #because of duplicate grib param id (but actually not, if 
-             #we implement typeOfFirstFixedSurface). so we are stoing into 
-             #nc file, then load into memory (cf_standard_name) while 
-             #re-ordering, followed by save into grib2 file. cf -> grib2 
-             #dictionary may not throw error, due to different key cfname.
-            ncfile = True
-            outFn = varSTASH + '_'+ ofname + '.nc'
-        # end of if (varName, varSTASH) in _ncfilesVars_:
-        
+                
         # append out grib2 files for the purpose of creating ctl files.
         if not outFn in __outg2files__: __outg2files__.append(outFn)
         print "__outg2files__ = ", __outg2files__
         outFn = os.path.join(_opPath_, outFn)
         print "Going to be save into ", outFn
+        print "ensembleData-var", ensembleData.standard_name
         print ensembleData
                 
         try:                
             # _lock_ other threads / processors from being access same file 
             # to write other variables. 
-    #        _lock_.acquire()
-            if ncfile:
-                iris.fileformats.netcdf.save(ensembleData, outFn)  # save nc file 
-            else:
-                # before save it, tweak the cubes by setting centre no and 
-                # address other temporary issues before saving into grib2.
-                iris.fileformats.grib.save_messages(tweaked_messages([ensembleData,]), 
-                                                               outFn, append=True) # save grib2 file 
+#            _lock_.acquire()
+            
+            # before save it, tweak the cubes by setting centre no and 
+            # address other temporary issues before saving into grib2.
+            iris.fileformats.grib.save_messages(tweaked_messages([ensembleData,]), 
+                                                           outFn, append=True) # save grib2 file 
             # release the _lock_, let other threads/processors access this file.
-    #        _lock_.release()
+#            _lock_.release()
         except Exception as e:
             print "ALERT !!! Error while saving!! %s" % str(e)
             print " So skipping this without saving data"        
@@ -740,10 +776,10 @@ def packEnsemblesInParallel(arg):
     step_fcst_hour = __fcst_step_hour__    
     ensembleFiles_allConstraints_list = []
     
-    fexthr = hr if int(hr) else '1' 
+    fexthr = str(hr).zfill(3) 
     ensembleFiles = [os.path.join(_inDataPath_, str(ens).zfill(3)+'_'+fpname+fexthr) 
                                             for ens in range(0, _ensemble_count_+1, 1)]
-    fileName = '000_' + fpname + '1'  # sample file to get the variabels name.
+    fileName = '000_' + fpname   # sample file to get the variabels name.
     
     fname = os.path.join(_inDataPath_, fileName)
     # get variable indices
@@ -773,12 +809,18 @@ def packEnsemblesInParallel(arg):
     # end of if not varNamesSTASH:
     
     for varName, varSTASH in varNamesSTASH:        
-        for fhr in fcstHours:            
+        for fhr in fcstHours:
+            # the following vars doesnt have value at 00th instantaneous, but has 06th value.
+            if not fhr and (varName, varSTASH) in [('air_temperature_maximum', 'm01s03i236'),   
+('air_temperature_minimum', 'm01s03i236'), ('relative_humidity', 'm01s03i245'),
+('precipitation_amount', 'm01s05i226'), ('specific_humidity', 'm01s03i237'),]: continue
+            if not fhr and 'flux' in varName: continue
             allConstraints = [varName, varSTASH, fhr]     
             ensembleFiles_allConstraints_list.append((ensembleFiles, allConstraints))
     # end of for varName, varSTASH in varNamesSTASH:      
     
     print "Started Processing the file:  \n" 
+    print "ensembleFiles_allConstraints_list", ensembleFiles_allConstraints_list
                                                 
     ## get the no of childs process to create fcst ensemble files  
     nchild = len(ensembleFiles_allConstraints_list)     
@@ -881,6 +923,30 @@ def tweaked_messages(cubeList):
             gribapi.grib_set(grib_message, "typeOfEnsembleForecast", 3)
             # ensembles tweak end
             
+            if cube.coords('depth_below_land_surface') or cube.coords('depth'):                
+                if __soilFirstSecondFixedSurfaceUnit__ == 'cm':
+                    # scaleFactorOfFirstFixedSurface as 2, equivalent to divide
+                    # the depth_below_land_surface.points by 100. So that we can 
+                    # be sure that grib2 has 0.1m, 0.35m, 1m & 3m. Otherwise, we 
+                    # will endup with 0m, 0m, 1m & 3m and finally will loose 
+                    # information about decimal values of levels.
+                    gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 2)
+                    gribapi.grib_set(grib_message, "scaleFactorOfSecondFixedSurface", 2)
+                    print "reset scaleFactorOfFirstFixedSurface as 2"
+                    print "reset scaleFactorOfSecondFixedSurface as 2"
+                elif __soilFirstSecondFixedSurfaceUnit__ == 'mm':
+                    # scaleFactorOfFirstFixedSurface as 3, equivalent to divide
+                    # the depth_below_land_surface.points by 1000. So that we can 
+                    # be sure that grib2 has 0.1m, 0.35m, 1m & 3m. Otherwise, we 
+                    # will endup with 0m, 0m, 1m & 3m and finally will loose 
+                    # information about decimal values of levels.
+                    gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 3)
+                    gribapi.grib_set(grib_message, "scaleFactorOfSecondFixedSurface", 3)
+                    print "reset scaleFactorOfFirstFixedSurface as 3"
+                    print "reset scaleFactorOfSecondFixedSurface as 3"
+                # end of if __soilFirstSecondFixedSurfaceUnit__ == 'cm':
+            # end of if cube.coords('depth_below_land_surface'):           
+            
             if cube.standard_name or cube.long_name:
                 if cube.standard_name:
                     loc_longname = None
@@ -889,6 +955,8 @@ def tweaked_messages(cubeList):
                         # surfcae as Mean sea level (101)
                         gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 101)
                     # end of if cube.standard_name.startswith('tropopause'): 
+                    if cube.standard_name == 'surface_temperature':
+                        gribapi.grib_set(grib_message, "parameterNumber", 17) # skintemp
                 # end of if cube.standard_name:
 
                 if cube.long_name:                     
@@ -918,6 +986,7 @@ def tweaked_messages(cubeList):
                     # Set local table version number as 1 as per 
                     # ncmr_grib2_local_table standard.
                     gribapi.grib_set_long(grib_message, "versionNumberOfGribLocalTables", 1)
+                    print "setting localTable for", cube.standard_name
                 # end of if cube.standard_name in _ncmrGrib2LocalTableVars_:
             # end of if cube.standard_name or ...:
             if __setGrib2TableParameters__:
@@ -945,9 +1014,9 @@ def convertFilesInParallel(fnames, ftype):
            __start_long_fcst_hour__
     
     # calculate start hour of long fcst in multiple of days.
-    start_fcst_hour = __start_long_fcst_hour__ / 24
-    end_fcst_hour = __end_long_fcst_hour__ / 24
-    fcst_times = [str(hr) for hr in range(start_fcst_hour, end_fcst_hour+1, 1)]
+    start_fcst_hour = __start_long_fcst_hour__
+    end_fcst_hour = __end_long_fcst_hour__ 
+    fcst_times = [str(hr) for hr in range(start_fcst_hour, end_fcst_hour, __fcst_step_hour__)]
     fcst_filenames = [(fname, hr) for fname in fnames for hr in fcst_times]
     ## get the no of files and 
     nprocesses = len(fcst_filenames) 
@@ -1033,12 +1102,7 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
         fhrs = range(0+simulated_hr, 6+simulated_hr, __anl_step_hour__)     
     elif ftype in ['fcst', 'prg']:    
         outFileNameStructure = __fcstFileNameStructure__
-        if __fcst_step_hour__ == 6:
-            shr = int(__start_long_fcst_hour__/24)
-            shr = (shr - 1) * 24 if shr > 0 else shr
-            fhrs = numpy.array([6, 12, 18, 24]) + shr       
-        elif __fcst_step_hour__ == 24:
-            fhrs = range(__start_long_fcst_hour__, __end_long_fcst_hour__+1, 
+        fhrs = range(__start_long_fcst_hour__, __end_long_fcst_hour__+1, 
                                                          __fcst_step_hour__)
         print "fhrs = ", fhrs
         print "__start_long_fcst_hour__=",__start_long_fcst_hour__
@@ -1054,7 +1118,7 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
                                                                date, fhr, utc)
         for ext in ['', '.ctl', '.idx']:
             fpath = os.path.join(path, fname+ext)
-            if os.path.isfile(fpath):
+            if os.path.isfile(fpath) and outFileNameStructure[0] in fpath:
                 print "Out File already exists", fpath,
                 if overwrite: 
                     os.remove(fpath)
@@ -1085,7 +1149,7 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
                         fchr = 'day' + str(fhr/24).zfill(2)
                     if fchr in ifile:
                         try:
-                            os.remove(os.path.join(path, ifile))
+                            os.remove(os.path.join(path, ifile))                            
                         except:
                             pass                     
                         finally:
@@ -1113,7 +1177,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
        _removeVars_, _requiredPressureLevels_, __setGrib2TableParameters__, \
         __outg2files__, __start_long_fcst_hour__, __wgrib2Arguments__, \
         __UMtype__, _preExtension_, _extraPolateMethod_, _targetGridFile_, \
-       __fillFullyMaskedVars__, _reverseLatitude_, epsMeanVars
+       __fillFullyMaskedVars__, _reverseLatitude_, epsMeanVars 
      
     # load key word arguments
     UMtype = kwarg.get('UMtype', 'ensemble')
@@ -1172,7 +1236,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     __wgrib2Arguments__ = wgrib2Arguments
     # forecast filenames partial name
     if __fcst_step_hour__ == 6:
-        fcst_fnames = ['pb']
+        fcst_fnames = ['pd', 'pg']  # ['pb'] old filename 
     elif __fcst_step_hour__ == 24:
         fcst_fnames = ['pa', 'pc']
         
@@ -1209,7 +1273,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
             
             hr = 0
             ## if fileName has some extension, then do not add hr to it.
-            fileName = '000_' + fcst_fname + '1'
+            fileName = '000_' + fcst_fname 
             varNamesSTASH, _, _, _ = getVarInOutFilesDetails(_inDataPath_, fileName, hr)
             print "varNamesSTASH", varNamesSTASH
             print "convertVars", convertVars
@@ -1300,45 +1364,18 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
     
     pwd = os.getcwd()
     os.chdir(_opPath_)  # change to our path
-    if __fcst_step_hour__ == 6:
-        outg2files = [inf for inf in os.listdir(_opPath_) if 'hr' in inf if _preExtension_ in inf]
-        listOfInOutFiles = []
-        for fname in outg2files:
-            inFn = fname
-            outFn = fname.replace(_preExtension_, '')
-            listOfInOutFiles.append((inFn, outFn))
-        # end of for fname in outg2files:
-        
-        ## get the no of childs process to create fcst ensemble files  
-        nchild = len(listOfInOutFiles)     
-        maxprocess = mp.cpu_count()
-        if nchild > maxprocess: nchild = maxprocess
-        # create the no of child parallel processes
-        inner_pool = mp.Pool(processes=nchild)
-        print "Creating %i (daemon) workers and jobs in child." % nchild
-        # pass the (ensemblefileslist, allConstraints, pressureConstraint) as 
-        # argument to take one fcst ensemble file per process / core to regrid it.
-        results = inner_pool.map(doWgrib2cmd, listOfInOutFiles)
-        # closing and joining child pools      
-        inner_pool.close() 
-        inner_pool.join()
-        # parallel end  
-                
-        for (inFn, outFn) in listOfInOutFiles:
-            print inFn, outFn
-            # Lets create ctl and idx file. 
-            createGrib2CtlIdxFilesFn(outFn, ftype='fcst')  
-            # remove infile 
-            os.remove(inFn)
-        # end of for inFn, outFn in listOfInOutFiles:
-                        
-    elif __fcst_step_hour__ == 24:
-
-        dy = 'day'+str(int(__start_long_fcst_hour__) / 24).zfill(2)
-        outg2files = [inf for inf in os.listdir(_opPath_) if dy in inf if _preExtension_ in inf]
+    
+    fhrs = (numpy.arange(start_long_fcst_hour, end_long_fcst_hour, fcst_step_hour) + fcst_step_hour).tolist()
+    if start_long_fcst_hour == 0: fhrs = [0] + fhrs
+    ffns = fcstFileNameStructure[0]
+    print "ffns---->", ffns, fhrs
+    for fhr in fhrs:
+        hrs = str(fhr).zfill(3) + 'hr'
+        outg2files = [inf for inf in os.listdir(_opPath_) if ffns in inf if hrs in inf if _preExtension_ in inf]
+        if not outg2files: continue
         fname = '_'.join(outg2files[0].split('_')[1:]) # remove STASH alone
         outFn = fname.replace(_preExtension_, '') # remove _preExtension_
-        
+        print "_convertVars_====>", _convertVars_
         for varName, varSTASH in _convertVars_:
             # make unique file name becase we are running in parallel            
             if varName == 'air_temperature_maximum':
@@ -1352,7 +1389,7 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
             if not inFn: continue
             inFn = inFn[0]
             if __wgrib2Arguments__ is not None:
-                # execute post wgrib2 command in parellel (-ncpu 4 Best speed compare to 32)
+                # execute post wgrib2 command in parellel (-ncpu 4 Best speed compare to 32)            
                 cmd = "%s %s %s %s" % (wgrib2, inFn, __wgrib2Arguments__, outFn)
                 print "wgrib2 merge cmd", cmd
                 subprocess.call(cmd, shell=True)
@@ -1361,8 +1398,10 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
                 iris.fileformats.grib.save_messages(tweaked_messages(cubes), 
                                                  outFn, append=True) # save grib2 file                
             # end of if __wgrib2Arguments__:
-            time.sleep(15)
-            if (varName, varSTASH) not in epsMeanVars: os.remove(inFn)
+            time.sleep(15)            
+            if not ((varName, varSTASH) in epsMeanVars and fhr % 24 == 0): 
+                os.remove(inFn)
+                print "removed", inFn                        
             ## epsMeanVars will be created through callback script. For that 
             ## purpose we should not delete those files, because
             ## it requires to create EPS MEAN VSDB INPUT. We have to load 
@@ -1376,7 +1415,8 @@ def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
         time.sleep(15)
         # Lets create ctl and idx file. 
         createGrib2CtlIdxFilesFn(outFn, ftype='fcst')       
-    # end of if __fcst_step_hour__ == 6:     
+    # end of for fhr in range(start_long_fcst_hour, end_long_fcst_hour, fcst_step_hour):
+    
     os.chdir(pwd) # Back to previous directory
     
     if callBackScript:
