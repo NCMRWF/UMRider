@@ -1,5 +1,12 @@
 # Change Log
 
+## [v2.0.3](https://github.com/NCMRWF/UMRider/tree/v2.0.3) (2017-05-03)
+[Full Changelog](https://github.com/NCMRWF/UMRider/compare/v2.0.2...v2.0.3)
+
+**Merged pull requests:**
+
+- working commit of NCUM-EPS-TIGGE-TEST mode scripts [\#134](https://github.com/NCMRWF/UMRider/pull/134) ([arulalant](https://github.com/arulalant))
+
 ## [v2.0.2](https://github.com/NCMRWF/UMRider/tree/v2.0.2) (2017-03-27)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v2.0.1...v2.0.2)
 
