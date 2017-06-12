@@ -1,5 +1,12 @@
 # Change Log
 
+## [v2.0.4](https://github.com/NCMRWF/UMRider/tree/v2.0.4) (2017-06-12)
+[Full Changelog](https://github.com/NCMRWF/UMRider/compare/v2.0.3...v2.0.4)
+
+**Merged pull requests:**
+
+- HYSPLIT input support [\#135](https://github.com/NCMRWF/UMRider/pull/135) ([arulalant](https://github.com/arulalant))
+
 ## [v2.0.3](https://github.com/NCMRWF/UMRider/tree/v2.0.3) (2017-05-03)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v2.0.2...v2.0.3)
 
