@@ -268,7 +268,7 @@ _accumulationVars_ = [('precipitation_amount', 'm01s05i226'),
                       ('surface_upward_sensible_heat_flux', 'm01s03i217'),   
                       ('toa_outgoing_longwave_flux', 'm01s02i205')]                    
 
-# TIGGE's totoal time cummulated variables
+# TIGGE's total time cummulated variables
 _total_cummulativeVars_ = ['precipitation_amount', 
                            'surface_net_downward_shortwave_flux', 
                            'surface_net_downward_longwave_flux', 
@@ -359,6 +359,7 @@ ncumSTASH_tiggeVars = {
 ('land_binary_mask', 'm01s00i030'): ('land_sea_mask', 'lsm', None), # Proportion
 ('air_pressure_at_sea_level', 'm01s16i222'): ('mean_sea_level_pressure', 'msl', 'Pa'), 
 ('surface_altitude', 'm01s00i033'): ('orography', 'orog', None), # 'gpm' 
+('orography', 'm01s00i033'): ('orography', 'orog', None), # 'gpm'    # required to work.
 ('air_temperature', 'm01s03i236'): ('surface_air_temperature', '2t', 'K'),
 ('air_temperature_maximum', 'm01s03i236'): ('surface_air_maximum_temperature', 'mx2t6', 'K'),   
 ('air_temperature_minimum', 'm01s03i236'): ('surface_air_minimum_temperature', 'mn2t6', 'K'),
@@ -849,12 +850,11 @@ def regridAnlFcstFiles(arg):
                 regdCube.data = numpy.ma.array(regdCube.data, dtype=numpy.int)            
             # end of if (varName, varSTASH) in [('land_binary_mask', 'm01s00i030')]:
             
-            
             if (varName, varSTASH) in [('surface_altitude', 'm01s00i033')]:
                 regdCube.standard_name = None
                 regdCube.long_name = 'orography'
             # end of if (varName, varSTASH) in [('surface_altitude', 'm01s00i033')]:
-            
+
             if exmode == 'mask':
                 # For the above set of variables we shouldnot convert into 
                 # masked array. Otherwise its full data goes as nan.                
@@ -905,19 +905,14 @@ def regridAnlFcstFiles(arg):
             # get all other dimensions
             # generate list of tuples contain index and coordinate
             dim_coords = [(coord, i) for i,coord in enumerate(list(regdCube.dim_coords))]
-            aux_factories = regdCube.aux_factories
-            t = regdCube.coords('time')[0]
-            fp = regdCube.coords('forecast_period')[0]
-            ft = regdCube.coords('forecast_reference_time')[0]
+            aux_coords = regdCube.aux_coords            
             # create ensemble packed cubes 
             regdData = iris.cube.Cube(regdCube.data, regdCube.standard_name, 
                                      regdCube.long_name, regdCube.var_name,
                                        unit, regdCube.attributes, 
                                            regdCube.cell_methods, dim_coords)
-            # add all time coordinates
-            regdData.add_aux_coord(fp)
-            regdData.add_aux_coord(ft)
-            regdData.add_aux_coord(t)
+            # add all aux coordinates            
+            for axc in aux_coords: regdData.add_aux_coord(axc)
                         
             print regdData
             # make memory free 
@@ -998,7 +993,8 @@ def save_tigge_tweaked_messages(cubeList):
     
     for cube in cubeList:
         for cube, grib_message in iris.fileformats.grib.as_pairs(cube): #save_pairs_from_cube(cube): #
-            print "Tweaking begin ", cube.standard_name, cube.long_name
+            cstash = str(cube.attributes.get('STASH', 'None'))
+            print "Tweaking begin ", cube.standard_name, cube.long_name, cstash
             # post process the GRIB2 message, prior to saving
             gribapi.grib_set_long(grib_message, "centre", 29) # RMC of India
             gribapi.grib_set_long(grib_message, "subCentre", 0) # No subcentre
@@ -1062,12 +1058,17 @@ def save_tigge_tweaked_messages(cubeList):
                     # but mean while lets fix by setting typeOfTimeIncrement=2.
                     # http://www.cosmo-model.org/content/model/documentation/grib/pdtemplate_4.11.htm 
                     gribapi.grib_set(grib_message, "typeOfTimeIncrement", 2)
-            # end of if cube.coord("realization"):
-                        
-            # end of if cube.coords('depth_below_land_surface'):    
+            # end of if cube.coord("realization"):                        
+            
             if cube.standard_name or cube.long_name:
                 if cube.standard_name:
                     loc_longname = None
+                    if (cube.standard_name, cstash) == ('air_temperature', 'm01s03i236'):
+                        # we have to explicitly re-set the type of first fixed
+                        # surfcae as (103) and scale factor, scale value of 2m temperature
+                        gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 103)
+                        gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 0)
+                        gribapi.grib_set(grib_message, "scaledValueOfFirstFixedSurface", 2)
                     if cube.standard_name.startswith('air_pressure_at_sea_level'):
                         # we have to explicitly re-set the type of first fixed
                         # surfcae as Mean sea level (101)
@@ -1094,6 +1095,14 @@ def save_tigge_tweaked_messages(cubeList):
                 # end of if cube.standard_name:
 
                 if cube.long_name: 
+                    if ((cube.long_name, cstash) in [('air_temperature_maximum', 'm01s03i236'), \
+                                                      ('air_temperature_minimum', 'm01s03i236')]):
+                        # we have to explicitly re-set the type of first fixed
+                        # surfcae as (103) and scale factor, scale value of 2m temperature
+                        gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 103)
+                        gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 0)
+                        gribapi.grib_set(grib_message, "scaledValueOfFirstFixedSurface", 2)
+                        gribapi.grib_set(grib_message, "timeIncrementBetweenSuccessiveFields", 0)
                     aod_name = _aod_pseudo_level_var_.keys()[0]
                     if cube.long_name.startswith(aod_name):
                         # we have to explicitly re-set the type of first surfcae
@@ -1132,6 +1141,10 @@ def save_tigge_tweaked_messages(cubeList):
                 
                 if (cube.standard_name in _total_cummulativeVars_ or \
                     cube.long_name in _total_cummulativeVars_):
+                    gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 1)
+                    gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 255)
+                    gribapi.grib_set(grib_message, "scaledValueOfFirstFixedSurface", -1)
+                    gribapi.grib_set(grib_message, "timeIncrementBetweenSuccessiveFields", 0)
                     gribapi.grib_set(grib_message, "typeOfStatisticalProcessing", 1)
             # end of if cube.standard_name or ...:
                         
@@ -1149,7 +1162,7 @@ def save_tigge_tweaked_messages(cubeList):
             createDirWhileParallelRacing(outgdir)            
             outgpath = os.path.join(outgdir, outgname) # Join the outpath & outfilename
             print "lets save into", outgpath
-            cstash = str(cube.attributes.get('STASH', 'None'))
+            
             if (cube.standard_name, cstash) in _accumulationVars_:
                 iris.fileformats.netcdf.save(cube, outgpath+'.nc')  # save nc file 
             else:
@@ -2010,6 +2023,11 @@ def packEnsembles(arg, **kwarg):
             regdCube.data = numpy.ma.array(regdCube.data, dtype=numpy.int)            
         # end of if (varName, varSTASH) in [('land_binary_mask', 'm01s00i030')]:
         
+        if (varName, varSTASH) in [('surface_altitude', 'm01s00i033')]:
+            regdCube.standard_name = None
+            regdCube.long_name = 'orography'
+        # end of if (varName, varSTASH) in [('surface_altitude', 'm01s00i033')]:
+                    
         if exmode == 'mask':
             # For the above set of variables we shouldnot convert into 
             # masked array. Otherwise its full data goes as nan.                
@@ -2090,21 +2108,14 @@ def packEnsembles(arg, **kwarg):
         dim_coords.insert(0, enscoord)
         # generate list of tuples contain index and coordinate
         dim_coords = [(coord, i) for i,coord in enumerate(dim_coords)]
-        # get all other dimensions
-        aux_factories = regdCube.aux_factories
-        t = regdCube.coords('time')[0]
-        fp = regdCube.coords('forecast_period')[0]
-        ft = regdCube.coords('forecast_reference_time')[0]
-        # create ensemble packed cubes 
+        # set all other dimensions
         ensembleData = iris.cube.Cube(ensembleData, regdCube.standard_name, 
                                  regdCube.long_name, regdCube.var_name,
                                    unit, regdCube.attributes, 
                                        regdCube.cell_methods, dim_coords)
         # add all time coordinates
+        for axc in regdCube.aux_coords: ensembleData.add_aux_coord(axc)      
         print "setting aux_coords to", ensembleData.shape, varName, fhr 
-        ensembleData.add_aux_coord(fp)
-        ensembleData.add_aux_coord(ft)
-        ensembleData.add_aux_coord(t)
         # create cell method for ensembles
         cm = iris.coords.CellMethod('realization', ('realization',), 
                                intervals=('1',), comments=(' ENS',))

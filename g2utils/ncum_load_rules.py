@@ -42,8 +42,8 @@ duplicateSTASH_vs_cf = {
 # duplicate STASH but cell_methods are different, variables comes here.
 # STASH : {cell_method1 : (standard_name, long_name, unit, height),
 #          cell_method2 : (standard_name, long_name, unit, height)}
-'m01s03i236': {'maximum': (None, 'air_temperature_maximum', 'K', None),
-               'minimum': (None, 'air_temperature_minimum', 'K', None)}
+'m01s03i236': {'maximum': (None, 'air_temperature_maximum', 'K', 1.5),
+               'minimum': (None, 'air_temperature_minimum', 'K', 1.5)}
 }
 
 G2Param_vs_cf = {

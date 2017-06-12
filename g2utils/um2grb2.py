@@ -88,7 +88,8 @@ _lock_ = mp.Lock()
 g2ctl = "/gpfs2/home/umtid/Softwares/grib2ctl/g2ctl.pl"
 grib2ctl = "/gpfs2/home/umtid/Softwares/grib2ctl/grib2ctl.pl"
 gribmap = "/gpfs1/home/Libs/GNU/GRADS/grads-2.0.2.oga.1/Contents/gribmap"
-cnvgrib = "/gpfs1/home/Libs/INTEL/CNVGRIB/CNVGRIB-1.4.1/cnvgrib-1.4.1/cnvgrib"
+#cnvgrib = "/gpfs1/home/Libs/INTEL/CNVGRIB/CNVGRIB-1.4.1/cnvgrib-1.4.1/cnvgrib"
+cnvgrib = "/gpfs2/home/umtid/Softwares/cnvgrib/CNVGRIB-1.4.1/cnvgrib-1.4.1/cnvgrib"
 wgrib2 = "/gpfs1/home/Libs/GNU/WGRIB2/v2.0.4/wgrib2/wgrib2"
 
 # other global variables
@@ -160,6 +161,7 @@ _orderedVars_ = {'PressureLevel': [
 ('x_wind', 'm01s15i201'), 
 ('y_wind', 'm01s15i202'),   
 ('upward_air_velocity', 'm01s15i242'),
+('upward_air_velocity_in_pascal', 'm01s15i242'),
 ('air_temperature', 'm01s16i203'),
 ('relative_humidity', 'm01s16i256'),
 ('specific_humidity', 'm01s30i205')],
@@ -257,7 +259,10 @@ _orderedVars_ = {'PressureLevel': [
 ('soil_temperature', 'm01s08i225'),
 # the below one is for orography which presents only in analysis file.
 # so we must keep this as the last one in the ordered variables!
-('surface_altitude', 'm01s00i033')],
+('surface_altitude', 'm01s00i033'),
+('surface_geopotential_height', 'm01s00i033') # this is orography, but 
+# some model requires orography has to be written in gpm unit.
+],
 }
   
     
@@ -421,7 +426,13 @@ _depedendantVars_ = {
     ('atmosphere_mass_content_of_dust_dry_aerosol_particles', 'm01s30i403'),
     ('atmosphere_cloud_liquid_water_content', 'm01s30i405'),
     ('atmosphere_cloud_ice_content', 'm01s30i406'),    
-    ]
+    ],
+
+('surface_geopotential_height', 'm01s00i033'): [('surface_altitude', 'm01s00i033')],
+
+('upward_air_velocity_in_pascal', 'm01s15i242'): [
+                                ('upward_air_velocity', 'm01s15i242'),
+                                ('air_temperature', 'm01s16i203')]
 }
                                             
 
@@ -2268,12 +2279,13 @@ def regridAnlFcstFiles(arg):
                 clength = regdCube.shape[0]
                 # subtract from previously cummulated to make it as hourly accumulated, 
                 # instead of writing as hourly cummulated.
-                for ci in range(clength-1, 1, -1): regdCube[ci].data -= regdCube[ci-1].data
+                for ci in range(clength-1, 1, -1): regdCube.data[ci] -= regdCube.data[ci-1]
                 
                 # removing cummulative time informations
                 regdCube.remove_coord('forecast_period')
                 regdCube.remove_coord('time')
                 
+                # here the snowfall_amount extract from 0 to 9 timestep
                 snowvarCon = iris.Constraint(name='snowfall_amount')
                 snowSTASHCon = iris.AttributeConstraint(STASH='m01s00i023')
                 snowVar = cubes.extract(snowvarCon & snowSTASHCon)[0]
@@ -2827,7 +2839,7 @@ def doShuffleVarsInOrder(fpath):
                                            standard_name='precipitation_amount',
                                                               removeSTASH=True)
         # lets fix -ve precipitation as 0.0        
-        precipitation_amount.data[precipitation_amount.data < 0.0] = 0.0
+        precipitation_amount.data[precipitation_amount.data <= 0.0] = 0.0
         
         # store the 'precipitation_amount' into orderedVars
         orderedVars.insert(idx, precipitation_amount)
@@ -2894,6 +2906,73 @@ def doShuffleVarsInOrder(fpath):
         # lets store the 'atmosphere_precipitable_water_content' into orderedVars
         orderedVars.insert(idx, atmosphere_precipitable_water_content)
     # end of if ('atmosphere_precipitable_water_content', 'None') in _convertVars_:
+    
+    
+    if ('upward_air_velocity_in_pascal', 'm01s15i242') in _convertVars_:
+
+        # find the index in _convertVars_
+        idx = _convertVars_.index(('upward_air_velocity_in_pascal', 'm01s15i242'))
+        # adjust the current index by subtract 1, because in previous insertion 
+        # causes order index increased by 1.
+        idx = idx-1 if (idx and oidx is None) else idx
+        oidx = idx
+        # store the upward_air_velocity data into temporary variable
+        upward_air_velocity = [var for var in orderedVars 
+               if var.standard_name == 'upward_air_velocity'] 
+        if not upward_air_velocity:
+            raise ValueError("Can not calculate upward_air_velocity_in_pascal, because unable to load upward_air_velocity")           
+        # store the air_temperature data into temporary variable
+        air_temperature = [var for var in orderedVars 
+               if var.standard_name == 'air_temperature']
+        if not air_temperature:
+            raise ValueError("Can not calculate upward_air_velocity_in_pascal, because unable to load air_temperature")
+        
+        # calculate 'upward_air_velocity_in_pascal' by subtracting [1] - [2] - [3] -[4] 
+        # upward_air_velocity_in_pascal = (upward_air_velocity / air_temperature) * -3.4162608
+        # For eg : (VVEL(850)/Temp(850))*-3.4162608
+        # ref : https://www.ncl.ucar.edu/Document/Functions/Contributed/omega_to_w.shtml
+        # Formula given by Dr.Sumit, Project Scientist-D, NCMRWF
+        upward_air_velocity = upward_air_velocity[0]
+        air_temperature = air_temperature[0]
+        print "upward_air_velocity=", upward_air_velocity.data.min(), upward_air_velocity.data.max()
+        print "air_temperature=", air_temperature.data.min(), air_temperature.data.max()
+        pressure = upward_air_velocity.coords('pressure')[0].points
+        upward_air_velocity_in_pascal = (upward_air_velocity / air_temperature) * -0.034162608
+        for idx, p in enumerate(pressure): upward_air_velocity_in_pascal.data[idx] *= float(int(p))    
+        print "pressure=", pressure    
+        print "upward_air_velocity_in_pascal", upward_air_velocity_in_pascal.data.min(), upward_air_velocity_in_pascal.data.max()
+        # Lets make sure that standard_name is None for this variable.
+        upward_air_velocity_in_pascal.standard_name = None
+        upward_air_velocity_in_pascal.long_name = 'upward_air_velocity_in_pascal'
+        upward_air_velocity_in_pascal.attributes = upward_air_velocity[0].attributes
+        
+        upward_air_velocity_in_pascal.units = Unit('Pa s-1')
+        
+        # lets store the 'upward_air_velocity_in_pascal' into orderedVars
+        orderedVars.insert(idx, upward_air_velocity_in_pascal)
+    # end of if ('upward_air_velocity_in_pascal', 'm01s15i242') in _convertVars_:    
+    
+    if ('surface_geopotential_height', 'm01s00i033') in _convertVars_:
+
+        # find the index in _convertVars_
+        idx = _convertVars_.index(('surface_geopotential_height', 'm01s00i033'))
+        # adjust the current index by subtract 1, because in previous insertion 
+        # causes order index increased by 1.
+        idx = idx-1 if (idx and oidx is None) else idx
+        oidx = idx
+        # store the surface_altitude data into temporary variable
+        surface_altitude = [var for var in orderedVars 
+               if var.standard_name == 'surface_altitude'] 
+        if not surface_altitude:
+            raise ValueError("Can not calculate surface_geopotential_height, because unable to load surface_altitude")         
+        surface_geopotential_height = surface_altitude[0] 
+        surface_geopotential_height.standard_name = None
+        surface_geopotential_height.long_name = 'surface_geopotential_height'
+        # remove older orography variable (to avoid duplicate)
+        orderedVars.remove(surface_altitude[0])
+        # lets store the 'surface_geopotential_height' into orderedVars
+        orderedVars.insert(idx, surface_geopotential_height)
+    # end of if ('surface_geopotential_height', 'm01s00i033') in _convertVars_:
     
     # remove temporary variables from ordered vars list 
     for dvar, dSTASH in _removeVars_:
@@ -3328,9 +3407,13 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
             if os.path.isfile(fpath):
                 print "Out File already exists", fpath,
                 if overwrite: 
-                    os.remove(fpath)
-                    status = 'FilesRemoved'
-                    print ", but overwrite option is True. So removed it!"
+                    try:
+                        os.remove(fpath)
+                    except Exception, e:
+                        print "Got error while removing file", e
+                    finally:
+                        status = 'FilesRemoved'
+                        print ", but overwrite option is True. So removed it!"
                 else:
                     status = 'FilesExist' 
             else:
@@ -3342,19 +3425,32 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
                     status = 'PartialFilesExist'
                     break
         # end of for ext in ['', '.ctl', '.idx']:
+        
+        for ext in [_preExtension_, '_Ordered']:
+            fpath = os.path.join(path, fname)
+            if os.path.isfile(fpath) and ext in fpath:
+                try:
+                    os.remove(fpath)
+                except Exception, e:
+                        print "Got error while removing file", e
+                finally:
+                    status = 'IntermediateFilesExist'
+                    print "removed intermediate file" 
+        # end of for ext in [_preExtension_, '_Ordered']:
     # end of for fhr in fhrs:
     
-    ifiles1 = [fname for fname in os.listdir(path) if _preExtension_ in fname]
-    ifiles2 = [fname for fname in os.listdir(path) if '_Ordered' in fname]
-    ifiles = ifiles1 + ifiles2
+    ifiles = [fname for fname in os.listdir(path) if fname.endswith('.nc')]    
     if ifiles:        
         print "Intermediate files are exists in the outdirectory.", path
-        for ifile in ifiles:        
+        for ifile in ifiles:    
             if outFileNameStructure[0] in ifile and utc in ifile and _preExtension_ in ifile:
-                os.remove(os.path.join(path, ifile))
-                status = 'IntermediateFilesExist'
-                print "removed intermediate nc file"                
-        # end of for ncfile in ncfiles:        
+                try:
+                    os.remove(os.path.join(path, ifile))
+                except Exception, e:
+                        print "Got error while removing file", e
+                finally:
+                    status = 'IntermediateFilesExist'
+                    print "removed intermediate nc file"                
     # end of if ncfiles:
     if status in ['PartialFilesExist', 'IntermediateFilesExist']:
         # partial files exist, so make overwrite option as True and do 

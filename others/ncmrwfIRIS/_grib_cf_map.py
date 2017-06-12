@@ -159,6 +159,7 @@ GRIB2_TO_CF = {
     
     # G2Param(grib version, discipline, parameter category, parameter no): CFName('standard_name', 'long_name', 'units') # paramid
     G2Param(2, 0, 2, 9): CFName('upward_air_velocity', None, 'm s-1'), # 500032
+    G2Param(2, 0, 2, 8): CFName(None, 'upward_air_velocity_in_pascal', 'Pa s-1'),
     G2Param(2, 0, 6, 23): CFName(None, 'cloud_ice_mixing_ratio', 'kg kg-1'), # 260118
     G2Param(2, 0, 3, 10): CFName(None, 'density', 'kg m-3'), # 3089
     G2Param(2, 0, 19, 0): CFName('visibility_in_air', None, 'm'), # 3020
@@ -308,6 +309,7 @@ CF_TO_GRIB2 = {
     CFName('dew_point_temperature', None, 'K'): G2Param(2, 0, 0, 6),
     CFName('geopotential', None, 'm2 s-2'): G2Param(2, 0, 3, 4),
     CFName('geopotential_height', None, 'm'): G2Param(2, 0, 3, 5),
+    CFName(None, 'surface_geopotential_height', 'm'): G2Param(2, 0, 3, 5), # this is orography, but some model requires orography should be written as in gpm.
     CFName('geopotential_height_anomaly', None, 'm'): G2Param(2, 0, 3, 9),
     CFName('high_type_cloud_area_fraction', None, '%'): G2Param(2, 0, 6, 5),
     CFName('humidity_mixing_ratio', None, 'kg kg-1'): G2Param(2, 0, 1, 2),
@@ -360,6 +362,7 @@ CF_TO_GRIB2 = {
     
     # CFName('standard_name', 'long_name', 'units'): G2Param(grib version, discipline, parameter category, parameter no) # paramid
     CFName('upward_air_velocity', None, 'm s-1'): G2Param(2, 0, 2, 9), # 500032
+    CFName(None, 'upward_air_velocity_in_pascal', 'Pa s-1'): G2Param(2, 0, 2, 8), 
     CFName(None, 'cloud_ice_mixing_ratio', 'kg kg-1'): G2Param(2, 0, 6, 23), # 260118
     CFName(None, 'density', 'kg m-3'): G2Param(2, 0, 3, 10), # 3089
     CFName('visibility_in_air', None, 'm'): G2Param(2, 0, 19, 0), # 3020   

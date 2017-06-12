@@ -25,7 +25,7 @@ from loadconfigure import inPath, outPath, tmpPath, date, loadg2utils, \
 
 if loadg2utils == 'system':
     # Load g2utils from system python which has installed through setup.py
-    from g2utils.um2grb2 import convertFcstFiles
+    from g2utils.um2grb2tigge import convertFcstFiles
     print "INFO : imported g2utils.um2grb2 from system python"
 elif loadg2utils == 'local':
     # Load g2utils from previous directory for the operational purpose, 

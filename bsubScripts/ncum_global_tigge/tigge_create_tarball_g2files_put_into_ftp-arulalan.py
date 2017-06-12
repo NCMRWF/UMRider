@@ -18,6 +18,7 @@ import os, subprocess, datetime, getopt, sys, glob
 
 pbzip2 = '/gpfs1/home/Libs/GNU/ZIPUTIL/pbzip2'
 pigz = '/gpfs1/home/Libs/GNU/ZIPUTIL/pigz'
+tigge_check = '/gpfs2/home/prasanna/SOFTWARE/GNU/grib_api-1.21.0-path/bin/tigge_check'
 
 filesCount = {'ttr': 41, 'lsm': 41, 'orog': 41, '10v': 41, 'tcc': 41, 'gh': 369, 'skt': 41, 'tp': 41, 'msl': 41, 'mx2t6': 40, '2d': 41, '10u': 41, 'mn2t6': 40, 'sshf': 41, 'slhf': 41, 'ssr': 41, '2t': 41, 'sp': 41, 'st': 41, 'q': 328, 'u': 328, 't': 328, 'str': 41, 'v': 328, 'sd': 41}
 
@@ -40,6 +41,14 @@ def createTarBalls(path, today, member):
     
     cdir = os.getcwd()
     os.chdir(inpath)
+    
+    for tgf in os.listdir('.'):
+        cmd = tigge_check + '-v -w %s/*' % tgf
+        tigge_check_val = os.system(cmd)  # it should return 0 on pass 
+        if tigge_check_val != 0 : 
+            print "Error : While checking via tigge_check cmd got error!"
+            sys.exit(0)
+    # end of for tgf in os.listdir('.'):
     
     tDay = datetime.datetime.strptime(today, "%Y%m%d")
     lag1 = datetime.timedelta(days=1)
