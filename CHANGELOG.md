@@ -1,5 +1,12 @@
 # Change Log
 
+## [v2.0.5](https://github.com/NCMRWF/UMRider/tree/v2.0.5) (2017-08-14)
+[Full Changelog](https://github.com/NCMRWF/UMRider/compare/v2.0.4...v2.0.5)
+
+**Merged pull requests:**
+
+- NCUM EPS 6 hourly + TIGGE [\#136](https://github.com/NCMRWF/UMRider/pull/136) ([arulalant](https://github.com/arulalant))
+
 ## [v2.0.4](https://github.com/NCMRWF/UMRider/tree/v2.0.4) (2017-06-12)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v2.0.3...v2.0.4)
 
