@@ -1090,7 +1090,7 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
     
     global _preExtension_, __end_long_fcst_hour__, __anlFileNameStructure__,\
            __fcstFileNameStructure__, __fcst_step_hour__, \
-           __anl_step_hour__, __utc__, __start_long_fcst_hour__
+           __anl_step_hour__, __utc__, __start_long_fcst_hour__ 
            
     if ftype in ['ana', 'anl']:
         outFileNameStructure = __anlFileNameStructure__
@@ -1100,30 +1100,36 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
         # its forecast time starting from 0 and reference time based on utc.
         # so we should calculate correct hour as below.
         fhrs = range(0+simulated_hr, 6+simulated_hr, __anl_step_hour__)     
-    elif ftype in ['fcst', 'prg']:    
+    elif ftype in ['fcst', 'prg']:
         outFileNameStructure = __fcstFileNameStructure__
         fhrs = range(__start_long_fcst_hour__, __end_long_fcst_hour__+1, 
-                                                         __fcst_step_hour__)
-        print "fhrs = ", fhrs
-        print "__start_long_fcst_hour__=",__start_long_fcst_hour__
-        print "__end_long_fcst_hour__=",__end_long_fcst_hour__
-        print "__fcst_step_hour__=", __fcst_step_hour__
+                                                     __fcst_step_hour__)
+        if __fcst_step_hour__ == 6 and __start_long_fcst_hour__: fhrs = fhrs[1:]
+        print "fhrs++", fhrs, __fcst_step_hour__, __start_long_fcst_hour__
     # get the out fileName Structure based on pre / user defined indecies
     outFnIndecies = __getAnlFcstFileNameIndecies__(outFileNameStructure)
     status = None
+    fnames = [] 
+    print "fhrs = ", fhrs
     for fhr in fhrs:
         # generate the out file name based on actual informations.
         # here preExtension is empty string to create final needed out file name                        
         fname = __genAnlFcstOutFileName__(outFileNameStructure, outFnIndecies,  
                                                                date, fhr, utc)
+        fpath = os.path.join(path, fname) 
+        fnames.append(fname)       
         for ext in ['', '.ctl', '.idx']:
             fpath = os.path.join(path, fname+ext)
-            if os.path.isfile(fpath) and outFileNameStructure[0] in fpath:
+            if os.path.isfile(fpath):
                 print "Out File already exists", fpath,
                 if overwrite: 
-                    os.remove(fpath)
-                    status = 'FilesRemoved'
-                    print ", but overwrite option is True. So removed it!"
+                    try:
+                        os.remove(fpath)
+                    except Exception, e:
+                        print "Got error while removing file", e
+                    finally:
+                        status = 'FilesRemoved'
+                        print ", but overwrite option is True. So removed it!"
                 else:
                     status = 'FilesExist' 
             else:
@@ -1135,26 +1141,28 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
                     status = 'PartialFilesExist'
                     break
         # end of for ext in ['', '.ctl', '.idx']:
+        
+        for ext in [_preExtension_, '_Ordered']:
+            fpath = os.path.join(path, fname)
+            if os.path.isfile(fpath) and ext in fpath:
+                try:
+                    os.remove(fpath)
+                    print "removed file : ", fpath
+                except Exception, e:
+                        print "Got error while removing file", e
+                finally:
+                    status = 'IntermediateFilesExist'
+                    print "removed intermediate file" 
+        # end of for ext in [_preExtension_, '_Ordered']:
     # end of for fhr in fhrs:
     
-    ifiles = [fname for fname in os.listdir(path) if _preExtension_ in fname]
+    ifiles = [fname for fname in os.listdir(path) if fname.endswith('.nc')]    
     if ifiles:        
         print "Intermediate files are exists in the outdirectory.", path
-        for ifile in ifiles:
-            if outFileNameStructure[0] in ifile and _preExtension_ in ifile:
-                for fhr in fhrs: 
-                    if __fcst_step_hour__ == 6: 
-                        fchr = str(fhr).zfill(3) + 'hr'
-                    elif __fcst_step_hour__ == 24:
-                        fchr = 'day' + str(fhr/24).zfill(2)
-                    if fchr in ifile:
-                        try:
-                            os.remove(os.path.join(path, ifile))                            
-                        except:
-                            pass                     
-                        finally:
-                            status = 'IntermediateFilesExist'
-                        print "removed intermediate file", ifile
+        for ifile in ifiles:    
+            if not [ifile for fname in fnames if fname.split('.')[0] in ifile]: continue
+            if outFileNameStructure[0] in ifile and utc in ifile and _preExtension_ in ifile:
+                status = 'IntermediateFilesExist'
     # end of if ncfiles:
     if status in ['PartialFilesExist', 'IntermediateFilesExist']:
         # partial files exist, so make overwrite option as True and do 

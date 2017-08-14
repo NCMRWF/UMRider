@@ -7,8 +7,8 @@
 #BSUB -x                      # exclusive mode
 #BSUB -R span[ptile=16]       # task per node 
 #BSUB -q ultra             	  # queue
-#BSUB -e /gpfs3/home/umfcst/UMRiderLogs/hysplit/bsub/um2grb2.fcst.00hr.err.%J.hybrid     # error file name in which %J is replaced by the job ID
-#BSUB -o /gpfs3/home/umfcst/UMRiderLogs/hysplit/bsub/um2grb2.fcst.00hr.out.%J.hybrid     # output file name in which %J is replaced by the job ID
+#BSUB -e /gpfs3/home/umfcst/UMRiderLogs/hysplit/0p5/bsub/um2grb2.fcst.00hr.err.%J.hybrid     # error file name in which %J is replaced by the job ID
+#BSUB -o /gpfs3/home/umfcst/UMRiderLogs/hysplit/0p5/bsub/um2grb2.fcst.00hr.out.%J.hybrid     # output file name in which %J is replaced by the job ID
 
 # find out the directory of this bash script after submitted to bsub
 DIR="$( cd "$( dirname "${BASH_SOURCE[1]}" )" && pwd )"

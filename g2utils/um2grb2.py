@@ -1240,6 +1240,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('y_wind', 'm01s03i226'), # 10 meter V wind 
                     ('x_wind', 'm01s15i201'), # 8 pressure levels
                     ('y_wind', 'm01s15i202'), # 8 pressure levels
+                    ('geopotential_height', 'm01s16i202'), # 8 pressure levels 
                     ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
                     ('cloud_area_fraction_assuming_maximum_random_overlap', 'm01s09i217'),
                     ('water_evaporation_flux_from_soil', 'm01s03i229'),
@@ -1257,10 +1258,10 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('stratiform_snowfall_amount', 'm01s04i202'),
                     ('stratiform_rainfall_amount', 'm01s04i201'),]
                     
-        if _requiredPressureLevels_ and set(_requiredPressureLevels_).issubset([925., 960., 975., 980., 985., 990., 995., 1000.]):
-            # same stash available in pd file also. so include only incase of chosen pressure level 
-            # applicable to this pe file.
-            varNamesSTASH.append(('geopotential_height', 'm01s16i202')) # 8 pressure levels            
+#        if _requiredPressureLevels_ and set(_requiredPressureLevels_).issubset([925., 960., 975., 980., 985., 990., 995., 1000.]):
+#            # same stash available in pd file also. so include only incase of chosen pressure level 
+#            # applicable to this pe file.
+#            varNamesSTASH.append(('geopotential_height', 'm01s16i202')) # 8 pressure levels            
             
         # the cube contains Instantaneous data at every 1-hours.
         if __fcst_step_hour__ == 1:
@@ -1709,7 +1710,7 @@ def regridAnlFcstFiles(arg):
            _precipVars_, _requiredPressureLevels_, __anl_aavars_reference_time__, \
            __anl_aavars_time_bounds__, _extraPolateMethod_, _maskOverOceanVars_, \
            __fillFullyMaskedVars__,  _reverseLatitude_, __outFileType__, \
-           _write2NetcdfFile_, __UMReanalysis__ 
+           _write2NetcdfFile_, __UMReanalysis__, __end_long_fcst_hour__ 
    
     fpname, hr, varIdx = arg 
     
@@ -1917,7 +1918,8 @@ def regridAnlFcstFiles(arg):
                             cubes = getCubeData([infile, infile2])
                             
                     elif __UMtype__ == 'regional':
-                        fcstHours = numpy.arange(0., 6., 0.25).reshape(6, 4) + int(fileName[-3:]) + 0.125
+                        fhr1 = int(fileName[-3:])
+                        fcstHours = numpy.arange(0., 6., 0.25).reshape(6, 4) + fhr1 + 0.125
                     print varName, "fcstHours ", fcstHours, int(fileName[-3:])
                 elif dtype == 'ana':
                     # for analysis pe file, and this varibale we need to set the 
@@ -1938,6 +1940,13 @@ def regridAnlFcstFiles(arg):
         # define (simulated_hr) forecast_reference_time constraint
         fcstRefTimeConstraint = iris.Constraint(forecast_reference_time=PartialDateTime(hour=int(simulated_hr)))
         if __LPRINT__: print fcstRefTimeConstraint
+        if __UMtype__ == 'regional' and int(hr) >= 72 and __end_long_fcst_hour__ > 72: 
+            fcstHours = fcstHours[:3] # extract upto 75th hour only.
+            # CAUTION : This __end_long_fcst_hour__ > 72 checking will be correct if serially given 
+            # process from 1-75. it will create 73, 74, 75 without any problem.
+            # But 67 to 72 grib2 files, especially 72th hour will make problem because of slicing [:3]
+            # Here we must check >= 72, becase rainfall variables need it.
+        print "fcstHours++", fcstHours, hr, __UMtype__
         for fhr in fcstHours:
             # loop-2 -- runs through the selected time slices - synop hours                        
             if __LPRINT__: print "   Working on forecast time: ", fhr            
@@ -2500,7 +2509,7 @@ def doShuffleVarsInOrder(fpath):
            __anl_aavars_reference_time__, _reverseLatitude_, __wgrib2Arguments__, \
            _write2NetcdfFile_, __UMReanalysis__
     
-    print "doShuffleVarsInOrder Begins"
+    print "doShuffleVarsInOrder Begins", fpath
     # need to store the ordered variables in this empty list
     orderedVars = []
     ncloaddic = {}
@@ -2980,7 +2989,7 @@ def doShuffleVarsInOrder(fpath):
             # removed temporary vars from ordered vars list        
             if ovar.standard_name == dvar: orderedVars.remove(ovar)
     # end of for dvar in _removeVars_:
-    
+    print "fpath doShuffleVarsInOrder", fpath
     # generate correct file name by removing _preExtension_
     g2filepath = fpath.split(_preExtension_)
     ncfilepath = g2filepath[0] + '.nc'
@@ -3028,7 +3037,9 @@ def doShuffleVarsInOrder(fpath):
     del orderedVars
     
     # remove intermediate nc files.
-    for ncf in ncloadedfiles: os.remove(ncf)
+    for ncf in ncloadedfiles: 
+        print "removed ncf file:", ncf
+        os.remove(ncf)
         
     print "Created the variables in ordered fassion and saved into", 
     if _write2NetcdfFile_: 
@@ -3037,6 +3048,7 @@ def doShuffleVarsInOrder(fpath):
          
     print g2filepath
     # remove the older grib2 file 
+    print "removed older grib2 file", fpath
     os.remove(fpath)
     
     if __wgrib2Arguments__ is not None:
@@ -3150,7 +3162,9 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
                                            simulated_hr, _preExtension_)  
             fcstFiles.append(outFn)
         # end of for fcsthr in range(...):
-
+        if __start_long_fcst_hour__ > 72 and __end_long_fcst_hour__ > 72:
+             fcstFiles = fcstFiles[:3] # we need to extract upto 75 hours only
+             
         ## get the no of created fcst files  
         nprocesses = len(fcstFiles)  
         maxprocess = mp.cpu_count()
@@ -3209,14 +3223,19 @@ def doFcstConvert(fname):
     :param fname: Name of the FF filename in question as a "string"
     :return: Nothing! TANGIBLE!
     """
-    global __start_long_fcst_hour__, __end_long_fcst_hour__, __UMtype__
+    global __start_long_fcst_hour__, __end_long_fcst_hour__, __UMtype__, __fcst_step_hour__
     
     
     if __UMtype__ == 'global':
         # calculate start hour of long fcst in multiples of 24. Why?
         # 00 hr contains from 06 to 24 hours data.
         # 24 hr contains from 24 to 48 hours data, and so on.
-        start_fcst_hour = (__start_long_fcst_hour__ / 24) * 24
+        if __fcst_step_hour__ == 24:
+            start_fcst_hour = ((__start_long_fcst_hour__ / 24) - 1) * 24
+        else:
+            # < 24 hour, will it creat negative (-1) hour and try to looking for filename with -1.
+            # to avoild, it we created condition here.
+            start_fcst_hour = (__start_long_fcst_hour__ / 24) * 24
         # Here we are reducing one 24 because, 00 file contains upto 24 hour,
         # and 24 hour files contains upto 48 hour and so on.
             
@@ -3378,7 +3397,7 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
     
     global _preExtension_, __end_long_fcst_hour__, __anlFileNameStructure__,\
            __fcstFileNameStructure__, __fcst_step_hour__, \
-           __anl_step_hour__, __utc__, __start_long_fcst_hour__
+           __anl_step_hour__, __utc__, __start_long_fcst_hour__ 
            
     if ftype in ['ana', 'anl']:
         outFileNameStructure = __anlFileNameStructure__
@@ -3392,16 +3411,18 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
         outFileNameStructure = __fcstFileNameStructure__
         fhrs = range(__start_long_fcst_hour__, __end_long_fcst_hour__+1, 
                                                      __fcst_step_hour__)
-    
+        if __fcst_step_hour__ == 1: fhrs = fhrs[1:]
     # get the out fileName Structure based on pre / user defined indecies
     outFnIndecies = __getAnlFcstFileNameIndecies__(outFileNameStructure)
     status = None
+    fnames = [] 
     for fhr in fhrs:
         # generate the out file name based on actual informations.
         # here preExtension is empty string to create final needed out file name                        
         fname = __genAnlFcstOutFileName__(outFileNameStructure, outFnIndecies,  
                                                                date, fhr, utc)
-        fpath = os.path.join(path, fname)        
+        fpath = os.path.join(path, fname) 
+        fnames.append(fname)       
         for ext in ['', '.ctl', '.idx']:
             fpath = os.path.join(path, fname+ext)
             if os.path.isfile(fpath):
@@ -3431,6 +3452,7 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
             if os.path.isfile(fpath) and ext in fpath:
                 try:
                     os.remove(fpath)
+                    print "removed file : ", fpath
                 except Exception, e:
                         print "Got error while removing file", e
                 finally:
@@ -3443,14 +3465,9 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
     if ifiles:        
         print "Intermediate files are exists in the outdirectory.", path
         for ifile in ifiles:    
+            if not [ifile for fname in fnames if fname.split('.')[0] in ifile]: continue
             if outFileNameStructure[0] in ifile and utc in ifile and _preExtension_ in ifile:
-                try:
-                    os.remove(os.path.join(path, ifile))
-                except Exception, e:
-                        print "Got error while removing file", e
-                finally:
-                    status = 'IntermediateFilesExist'
-                    print "removed intermediate nc file"                
+                status = 'IntermediateFilesExist'
     # end of if ncfiles:
     if status in ['PartialFilesExist', 'IntermediateFilesExist']:
         # partial files exist, so make overwrite option as True and do 

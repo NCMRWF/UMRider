@@ -6,9 +6,9 @@
 #BSUB -n 16                   # number of tasks in job (max task in one node)
 #BSUB -x                      # exclusive mode
 #BSUB -R span[ptile=16]       # task per node 
-#BSUB -q small             	  # queue
-#BSUB -e um2grb2.fcst.00hr.err.%J.hybrid     # error file name in which %J is replaced by the job ID
-#BSUB -o um2grb2.fcst.00hr.out.%J.hybrid     # output file name in which %J is replaced by the job ID
+#BSUB -q ensemble             # queue
+#BSUB -e /gpfs3/home/umeps/UMRiderLogs/tigge/bsub/um2grb2.fcst.00hr.err.%J.%I.hybrid     # error file name in which %J is replaced by the job ID
+#BSUB -o /gpfs3/home/umeps/UMRiderLogs/tigge/bsub/um2grb2.fcst.00hr.out.%J.%I.hybrid     # output file name in which %J is replaced by the job ID
 
 # find out the directory of this bash script after submitted to bsub
 DIR="$( cd "$( dirname "${BASH_SOURCE[1]}" )" && pwd )"
@@ -33,10 +33,10 @@ echo "export UMRIDER_VARS="$UMRIDER_VARS
 echo "export GRIB2TABLE="$GRIB2TABLE
 
 # sourcing umtid_bashrc to load module python-uvcdat-iris!
-#source "$DIR/../umtid_bashrc"
+source "$DIR/../umtigge_bashrc"
 
 # get the index to pass command line argument (from based on JOB index)
 idx=$(printf "%02d" ${LSB_JOBINDEX})     # 2-digit number 
 
 # execute the script
-/gpfs2/home/arulalan/miniconda2/envs/iris-1.10.dev1/bin/python $g2script --start_long_fcst_hour=0 --end_long_fcst_hour=240 --convert_var_index=$idx
+python $g2script --start_long_fcst_hour=0 --end_long_fcst_hour=240 --convert_var_index=$idx

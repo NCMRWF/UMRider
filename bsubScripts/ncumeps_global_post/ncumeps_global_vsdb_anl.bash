@@ -8,8 +8,8 @@
 #BSUB -x
 #BSUB -R span[ptile=16]
 #BSUB -q ensemble             	  # queue
-#BSUB -e /gpfs3/home/umeps/UMRiderLogs/vsdb/bsub/umeps2grb2.vsdb.err.%J.hybrid     # error file name in which %J is replaced by the job ID
-#BSUB -o /gpfs3/home/umeps/UMRiderLogs/vsdb/bsub/umeps2grb2.vsdb.out.%J.hybrid     # output file name in which %J is replaced by the job ID
+#BSUB -e /gpfs3/home/umeps/UMRiderLogs/vsdb/bsub/umeps2grb2.vsdb.err.%J.%I.hybrid     # error file name in which %J is replaced by the job ID
+#BSUB -o /gpfs3/home/umeps/UMRiderLogs/vsdb/bsub/umeps2grb2.vsdb.out.%J.%I.hybrid     # output file name in which %J is replaced by the job ID
 
 
 # find out the directory of this bash script after submitted to bsub
@@ -20,12 +20,14 @@ localTable_relative_dir="$DIR/../../tables/local/ncmr/v1/"
 localTable_absolute_dir="$( cd "$localTable_relative_dir" && pwd )"
 localTable=$localTable_absolute_dir/ncmr_grib2_local_table
 
+export UMRIDER_STARTDATE=20160920
 export GRIB2TABLE=$localTable
 echo "export GRIB2TABLE="$GRIB2TABLE
 
 epsMeanScript=$DIR/ncumeps_create_memavg_vsdb_input.py
 
 export SHELL=/bin/bash
+#export UMRIDER_STARTDATE=20170406
 
 # set the hour to pass command line argument to create anl vsdb
 hour=0

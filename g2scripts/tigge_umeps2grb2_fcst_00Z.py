@@ -75,6 +75,11 @@ for opt, arg in opts:
         convertVarIdx = int(arg)
         print "WARNING : convertVarIdx option got overridden by command line argument" 
         print "Updated 'convertVarIdx = %d' " % convertVarIdx
+    elif opt in ("-m", "--ensemble_member"):
+        print "ensemble_member = ", arg
+        ensemble_member = str(int(arg)).zfill(3)
+        print "WARNING : ensemble_member option got overridden by command line argument"
+        print "Updated 'ensemble_member = %s' " % ensemble_member
 # end of for opt, arg in opts:
 
 sDay = datetime.datetime.strptime(startdate, "%Y%m%d")
@@ -90,6 +95,7 @@ while sDay <= eDay:
                     targetGridResolution=targetGridResolution, 
              date=startdate, utc='00', convertVars=neededVars, 
                                   convertVarIdx=convertVarIdx,
+                              ensemble_member=ensemble_member,
                   latitude=requiredLat, longitude=requiredLon,
                                 pressureLevels=pressureLevels,
                           extraPolateMethod=extraPolateMethod,

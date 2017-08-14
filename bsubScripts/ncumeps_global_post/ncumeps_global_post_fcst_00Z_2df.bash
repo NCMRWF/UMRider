@@ -1,15 +1,15 @@
 #!/bin/bash
 #
 #BSUB -a poe                  # set parallel operating environment
-####### BSUB -J  umeps2g2 job name 
+#######BSUB -J umeps2g2[6-240:6]             # job name
 ####### Jobname and hours will be submitted in the model executing script itself.
 #BSUB -W 06:00                # wall-clock time (hrs:mins)
 #BSUB -n 16                   # number of tasks in job
 #BUSB -x
 #BSUB -R span[ptile=16]
 #BSUB -q ensemble             	  # queue
-#BSUB -e /gpfs3/home/umeps/UMRiderLogs/post/bsub/umeps2grb2.fcst.06hr.err.%J.%I.hybrid     # error file name in which %J is replaced by the job ID
-#BSUB -o /gpfs3/home/umeps/UMRiderLogs/post/bsub/umeps2grb2.fcst.06hr.out.%J.%I.hybrid     # output file name in which %J is replaced by the job ID
+#BSUB -e /gpfs3/home/umeps/UMRiderLogs/post/bsub/um2grb2.fcst.00hr.err.%J.%I.hybrid     # error file name in which %J is replaced by the job ID
+#BSUB -o /gpfs3/home/umeps/UMRiderLogs/post/bsub/um2grb2.fcst.00hr.out.%J.%I.hybrid     # output file name in which %J is replaced by the job ID
 
 # find out the directory of this bash script after submitted to bsub
 DIR="$( cd "$( dirname "${BASH_SOURCE[1]}" )" && pwd )"
@@ -25,8 +25,8 @@ g2scripts_absolute_dir="$( cd "$g2scripts_relative_dir" && pwd )"
 g2script=$g2scripts_absolute_dir/umeps2grb2_fcst_00Z.py
 
 # export the configure paths to needed variables
-export UMRIDER_SETUP=$DIR/ncumeps_global_post_um2grb2_6hourly_setup.cfg
-export UMRIDER_VARS=$DIR/ncumeps_global_post_um2grb2_6hourly_vars.cfg
+export UMRIDER_SETUP=$DIR/ncumeps_global_post_um2grb2_2df_setup.cfg
+export UMRIDER_VARS=$DIR/ncumeps_global_post_um2grb2_2df_vars.cfg
 export GRIB2TABLE=$localTable
 
 echo "export UMRIDER_SETUP="$UMRIDER_SETUP
@@ -39,7 +39,8 @@ source "$DIR/../umtid_bashrc"
 export SHELL=/bin/bash
 # get the hour to pass command line argument (from based on JOB index)
 hour=$(printf "%02d" ${LSB_JOBINDEX})     # 2-digit number starting with 0
+hour0=$(expr $hour - 6)
 echo "hour="${hour}
 # execute the script
-python $g2script --start_long_fcst_hour=${hour} --end_long_fcst_hour=${hour}
+python $g2script --start_long_fcst_hour=${hour0} --end_long_fcst_hour=${hour}
 

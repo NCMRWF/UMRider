@@ -116,7 +116,7 @@ if __name__ == '__main__':
     ftp_server="prod@ftp"
     date = None
     member = '000'
-    outpath = '/gpfs4/home/arulalan/um2grb2/ArulTest/NCUM_TIGGE/EPS/%s/'
+    outpath = '/gpfs3/home/umeps/EPS/ShortJobs/NCUM_TIGGE/%s/'
     
     helpmsg = 'tigge_create_tarball_g2files_put_into_ftp.py --date=20160302 --member=001'
     try:

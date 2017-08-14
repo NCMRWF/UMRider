@@ -118,6 +118,7 @@ __removeGrib2FilesAfterGrib1FilesCreated__ = False
 # fill fully masked vars with this value.
 __fillFullyMaskedVars__ = None
 _ensemble_count_ = 44
+_ensemble_member_ = None
 
 # Defining default out grib2 file name structure for analysis 
 __anlFileNameStructure__ = ('um_ana', '_', '*HHH*', 'hr', '_', 
@@ -1103,6 +1104,12 @@ def save_tigge_tweaked_messages(cubeList):
                         gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 0)
                         gribapi.grib_set(grib_message, "scaledValueOfFirstFixedSurface", 2)
                         gribapi.grib_set(grib_message, "timeIncrementBetweenSuccessiveFields", 0)
+                    if 'toa' in cube.long_name:
+                        # we have to explicitly re-set the type of first surfcae
+                        # as Nominal top of the atmosphere i.e. 8 (WMO standard)
+                        gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 8) 
+                        gribapi.grib_set(grib_message, "typeOfSecondFixedSurface", 255) 
+                    # end of if cube.long_name.startswith('toa'): 
                     aod_name = _aod_pseudo_level_var_.keys()[0]
                     if cube.long_name.startswith(aod_name):
                         # we have to explicitly re-set the type of first surfcae
@@ -1141,7 +1148,19 @@ def save_tigge_tweaked_messages(cubeList):
                 
                 if (cube.standard_name in _total_cummulativeVars_ or \
                     cube.long_name in _total_cummulativeVars_):
+                    # set type of first fixed as surface by default for all variables
                     gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 1)
+                    if cube.long_name:
+                        if 'toa' in cube.long_name:
+                            # we have to explicitly re-set the type of first surfcae
+                            # as Nominal top of the atmosphere i.e. 8 (WMO standard)
+                            gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 8) 
+                    if cube.standard_name:
+                        if 'toa' in cube.standard_name:
+                            # we have to explicitly re-set the type of first surfcae
+                            # as Nominal top of the atmosphere i.e. 8 (WMO standard)
+                            gribapi.grib_set(grib_message, "typeOfFirstFixedSurface", 8) 
+                    # set other parameters
                     gribapi.grib_set(grib_message, "scaleFactorOfFirstFixedSurface", 255)
                     gribapi.grib_set(grib_message, "scaledValueOfFirstFixedSurface", -1)
                     gribapi.grib_set(grib_message, "timeIncrementBetweenSuccessiveFields", 0)
@@ -1332,7 +1351,7 @@ def _checkInFilesStatus(path, ftype, pfnames):
             
         # end of if __UMtype__ == 'global':
     # end of if ftype in ['ana', 'anl']:
-    print fhrs
+
     fileNotExistList = []
     for pfname in pfnames:
         for fhr in fhrs:
@@ -1363,7 +1382,7 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
     
     global _preExtension_, __end_long_fcst_hour__, __anlFileNameStructure__,\
            __fcstFileNameStructure__, __fcst_step_hour__, \
-           __anl_step_hour__, __utc__, __start_long_fcst_hour__
+           __anl_step_hour__,checkOut __utc__, __start_long_fcst_hour__ 
            
     if ftype in ['ana', 'anl']:
         outFileNameStructure = __anlFileNameStructure__
@@ -1377,24 +1396,32 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
         outFileNameStructure = __fcstFileNameStructure__
         fhrs = range(__start_long_fcst_hour__, __end_long_fcst_hour__+1, 
                                                      __fcst_step_hour__)
-    
+        if __fcst_step_hour__ == 6 and __start_long_fcst_hour__: fhrs = fhrs[1:]
+        print "fhrs++", fhrs, __fcst_step_hour__, __start_long_fcst_hour__
     # get the out fileName Structure based on pre / user defined indecies
     outFnIndecies = __getAnlFcstFileNameIndecies__(outFileNameStructure)
     status = None
+    fnames = [] 
+    print "fhrs = ", fhrs
     for fhr in fhrs:
         # generate the out file name based on actual informations.
         # here preExtension is empty string to create final needed out file name                        
         fname = __genAnlFcstOutFileName__(outFileNameStructure, outFnIndecies,  
                                                                date, fhr, utc)
-        fpath = os.path.join(path, fname)        
+        fpath = os.path.join(path, fname) 
+        fnames.append(fname)       
         for ext in ['', '.ctl', '.idx']:
             fpath = os.path.join(path, fname+ext)
             if os.path.isfile(fpath):
                 print "Out File already exists", fpath,
                 if overwrite: 
-                    os.remove(fpath)
-                    status = 'FilesRemoved'
-                    print ", but overwrite option is True. So removed it!"
+                    try:
+                        os.remove(fpath)
+                    except Exception, e:
+                        print "Got error while removing file", e
+                    finally:
+                        status = 'FilesRemoved'
+                        print ", but overwrite option is True. So removed it!"
                 else:
                     status = 'FilesExist' 
             else:
@@ -1406,17 +1433,28 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
                     status = 'PartialFilesExist'
                     break
         # end of for ext in ['', '.ctl', '.idx']:
+        
+        for ext in [_preExtension_, '_Ordered']:
+            fpath = os.path.join(path, fname)
+            if os.path.isfile(fpath) and ext in fpath:
+                try:
+                    os.remove(fpath)
+                    print "removed file : ", fpath
+                except Exception, e:
+                        print "Got error while removing file", e
+                finally:
+                    status = 'IntermediateFilesExist'
+                    print "removed intermediate file" 
+        # end of for ext in [_preExtension_, '_Ordered']:
     # end of for fhr in fhrs:
     
-    ifiles = [fname for fname in os.listdir(path) if _preExtension_ in fname]
+    ifiles = [fname for fname in os.listdir(path) if fname.endswith('.nc')]    
     if ifiles:        
         print "Intermediate files are exists in the outdirectory.", path
-        for ifile in ifiles:        
+        for ifile in ifiles:    
+            if not [ifile for fname in fnames if fname.split('.')[0] in ifile]: continue
             if outFileNameStructure[0] in ifile and utc in ifile and _preExtension_ in ifile:
-                os.remove(os.path.join(path, ifile))
                 status = 'IntermediateFilesExist'
-                print "removed intermediate nc file"                
-        # end of for ncfile in ncfiles:        
     # end of if ncfiles:
     if status in ['PartialFilesExist', 'IntermediateFilesExist']:
         # partial files exist, so make overwrite option as True and do 
@@ -1426,7 +1464,7 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
     else:
         return status
 # end of def _checkOutFilesStatus(path, ftype, date, hr, overwrite):
-            
+
 def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):
            
     global _targetGrid_, _targetGridRes_, _current_date_, _startT_, _tmpDir_, \
@@ -2159,7 +2197,7 @@ def packEnsemblesInParallel(arg):
 
     global  _startT_, _inDataPath_, __fcst_step_hour__, __LPRINT__, \
             _opPath_, _ensemble_count_, __outg2files__, __start_long_fcst_hour__, \
-            _current_date_
+            _current_date_, _ensemble_member_
                                     
     fpname, hr = arg 
 
@@ -2167,8 +2205,15 @@ def packEnsemblesInParallel(arg):
     ensembleFiles_allConstraints_list = []
     
     fexthr = hr if int(hr) else '000' 
-    ensembleFiles = [os.path.join(_inDataPath_, str(ens).zfill(3)+'_'+fpname+fexthr) 
+    
+    if _ensemble_member_ is not None: 
+        # generate file name for particular ensemble_member
+        ensembleFiles = [os.path.join(_inDataPath_, str(_ensemble_member_).zfill(3)+'_'+fpname+fexthr)]
+    else:
+        # generate files name for all ensemble memebers from 0
+        ensembleFiles = [os.path.join(_inDataPath_, str(ens).zfill(3)+'_'+fpname+fexthr) 
                                             for ens in range(0, _ensemble_count_+1, 1)]
+    
     fileName = '000_' + fpname + '000'  # sample file to get the variabels name.    
     fname = os.path.join(_inDataPath_, fileName)
     # get variable indices
@@ -2239,32 +2284,61 @@ def convertEPSFilesInParallel(fnames, ftype):
            __fcst_step_hour__, _createGrib2CtlIdxFiles_, \
            __start_long_fcst_hour__, _current_date_
     
-    # calculate start hour of long fcst in multiple of days.
-#    start_fcst_hour = __start_long_fcst_hour__ / 24
-#    end_fcst_hour = __end_long_fcst_hour__ / 24
     fcst_times = [str(hr).zfill(3) for hr in range(__start_long_fcst_hour__, __end_long_fcst_hour__, 6)]
-    fcst_filenames = [(fname, hr) for fname in fnames for hr in fcst_times]
-    ## get the no of files and 
-    nprocesses = len(fcst_filenames) 
-    maxprocess = mp.cpu_count()
-    if nprocesses > maxprocess: nprocesses = maxprocess
-    # lets create no of parallel process w.r.t no of files.
+    for hr in fcst_times:
+        fcst_filenames = [(fname, hr) for fname in fnames]
+        ## get the no of files and 
+        fcst_filenames_len = len(fcst_filenames)
+        nprocesses = fcst_filenames_len
+        maxprocess = mp.cpu_count()
+        # lets create no of parallel process w.r.t no of files.
+        if maxprocess > 16: maxprocess = 16
+        if nprocesses > maxprocess: nprocesses = maxprocess
+        
+        # parallel begin - 1 
+        pool = _MyPool(nprocesses)
+        print "Creating %d (non-daemon) workers and jobs in convertFilesInParallel process." % nprocesses        
+        if ftype in ['fcst', 'forecast']:        
+            results = pool.map(packEnsemblesInParallel, fcst_filenames)
+        else:
+            raise ValueError("Unknown file type !")
+        # end of if ftype in ['fcst', 'forecast']:     
+        # closing and joining master pools
+        pool.close()     
+        pool.join()
+        # parallel end - 1     
+        print "Total time taken to convert %d files was: %8.5f seconds \n" %(len(fcst_filenames),(time.time()-_startT_))
     
-    # parallel begin - 1 
-    pool = _MyPool(nprocesses)
-    print "Creating %d (non-daemon) workers and jobs in convertFilesInParallel process." % nprocesses        
-    if ftype in ['fcst', 'forecast']:        
-        results = pool.map(packEnsemblesInParallel, fcst_filenames)
-    else:
-        raise ValueError("Unknown file type !")
-    # end of if ftype in ['anl', 'analysis']:    
-
-    # closing and joining master pools
-    pool.close()     
-    pool.join()
-    # parallel end - 1     
-    print "Total time taken to convert %d files was: %8.5f seconds \n" %(len(fcst_filenames),(time.time()-_startT_))
-    
+#    fcst_times = [str(hr).zfill(3) for hr in range(__start_long_fcst_hour__, __end_long_fcst_hour__, 6)]
+#    fcst_filenames = [(fname, hr) for fname in fnames for hr in fcst_times]
+#    ## get the no of files and 
+#    fcst_filenames_len = len(fcst_filenames)
+#    nprocesses = fcst_filenames_len
+#    maxprocess = mp.cpu_count()
+#    if nprocesses > maxprocess: nprocesses = maxprocess
+#    # lets create no of parallel process w.r.t no of files.
+#    if maxprocess > 16: maxprocess = 16
+#    if fcst_filenames_len > 16: maxprocess -= 1
+#    den, rem = fcst_filenames_len/maxprocess, fcst_filenames_len%maxprocess
+#    if rem: den += 1
+#    prange = range(0, maxprocess*den+1, maxprocess)
+#    hours_set = [(prange[i], prange[i+1]) for i in range(len(prange)-1)]
+#    for st_idx, en_idx in hours_set:
+#        print "start_idx, end_idx", st_idx, en_idx
+#        # parallel begin - 1 
+#        pool = _MyPool(nprocesses)
+#        print "Creating %d (non-daemon) workers and jobs in convertFilesInParallel process." % nprocesses        
+#        if ftype in ['fcst', 'forecast']:        
+#            results = pool.map(packEnsemblesInParallel, fcst_filenames[st_idx:en_idx])
+#        else:
+#            raise ValueError("Unknown file type !")
+#        # end of if ftype in ['fcst', 'forecast']:     
+#        # closing and joining master pools
+#        pool.close()     
+#        pool.join()
+#        # parallel end - 1     
+#        print "Total time taken to convert %d files was: %8.5f seconds \n" %(len(fcst_filenames),(time.time()-_startT_))
+        
     return
 # end of def convertEPSFilesInParallel(fnames):
 
@@ -2280,7 +2354,7 @@ def convertEPSFcstFiles(inPath, outPath, tmpPath, **kwarg):
        _removeVars_, _requiredPressureLevels_, __setGrib2TableParameters__, \
         __outg2files__, __start_long_fcst_hour__, __wgrib2Arguments__, \
         __UMtype__, _preExtension_, _extraPolateMethod_, _targetGridFile_, \
-       __fillFullyMaskedVars__, _reverseLatitude_, epsMeanVars
+       __fillFullyMaskedVars__, _reverseLatitude_, epsMeanVars, _ensemble_member_
      
     # load key word arguments
     UMtype = kwarg.get('UMtype', 'ensemble')
@@ -2292,6 +2366,7 @@ def convertEPSFcstFiles(inPath, outPath, tmpPath, **kwarg):
     lprint = kwarg.get('lprint', False)
     convertVars = kwarg.get('convertVars', None)
     convertVarIdx = kwarg.get('convertVarIdx', None)
+    ensemble_member = kwarg.get('ensemble_member', None)
     latitude = kwarg.get('latitude', None)
     longitude = kwarg.get('longitude', None)
     pressureLevels = kwarg.get('pressureLevels', None)
@@ -2316,6 +2391,7 @@ def convertEPSFcstFiles(inPath, outPath, tmpPath, **kwarg):
     if convertVarIdx and convertVars: convertVars = [convertVars[convertVarIdx-1]]
     # assign the convert vars list of tuples to global variable
     if convertVars: _convertVars_ = convertVars
+    if ensemble_member is not None: _ensemble_member_ = ensemble_member
     # assign the analysis file name structure
     if fcstFileNameStructure: __fcstFileNameStructure__ = fcstFileNameStructure
     # set print variables details options
@@ -2479,11 +2555,17 @@ def convertEPSFcstFiles(inPath, outPath, tmpPath, **kwarg):
                         ('toa_outgoing_longwave_flux', 'm01s02i205', 'ttr'),
                         ('precipitation_amount', 'm01s05i226', 'tp')]:
         if (TCV, TCVS) not in convertVars: continue
-
-        # do cummulative precipitation_amount calculate for control run and ensemble members in parallel
-        cummulated_ens = [(TCSVAR, TCV, 'pf', str(ensno)) for ensno in range(1, _ensemble_count_+1, 1)]
-        cummulated_ens.insert(0, (TCSVAR, TCV, 'cf', '000'))
-
+        
+        if _ensemble_member_ is not None:
+            # cummulative precipitation_amount calculate just for single/particular member 
+            etype = 'cf' if not int(_ensemble_member_) else 'pf'
+            cummulated_ens = [(TCSVAR, TCV, etype, str(_ensemble_member_))]
+        else:
+            # cummulative precipitation_amount calculate for control run and ensemble members in parallel
+            cummulated_ens = [(TCSVAR, TCV, 'pf', str(ensno)) for ensno in range(1, _ensemble_count_+1, 1)] 
+            cummulated_ens.insert(0, (TCSVAR, TCV, 'cf', '000'))
+        # end of if _ensemble_member_ is not None:
+        
         ## get the no of files and 
         nprocesses = len(cummulated_ens) 
         maxprocess = mp.cpu_count()

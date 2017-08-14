@@ -768,7 +768,7 @@ def set_time_range(time_coord, grib):
     # 4 byte integer so we cast to highlight truncation of any floating
     # point value. The grib_api will do the cast from float to int, but it
     # cannot handle numpy floats.
-    time_range_in_hours = end_hours - start_hours
+    time_range_in_hours = round(end_hours) - round(start_hours) # required for NCMRWF
     integer_hours = round(time_range_in_hours) # required for NCMRWF
     if integer_hours != time_range_in_hours:
         msg = 'Truncating floating point lengthOfTimeRange {} to ' \

@@ -1,14 +1,14 @@
 #!/bin/bash
 #
 #BSUB -a poe                  # set parallel operating environment
-#BSUB -J umeps2g2[6-240:6]
+#BSUB -J tigg2g2oth[6-240:6]
 #BSUB -W 06:00                # wall-clock time (hrs:mins)
 #BSUB -n 16                   # number of tasks in job (max task in one node)
 #BSUB -x                      # exclusive mode
 #BSUB -R span[ptile=16]       # task per node 
-#BSUB -q small             	  # queue
-#BSUB -e um2grb2.fcst.00hr.err.%J.hybrid     # error file name in which %J is replaced by the job ID
-#BSUB -o um2grb2.fcst.00hr.out.%J.hybrid     # output file name in which %J is replaced by the job ID
+#BSUB -q ensemble         	  # queue
+#BSUB -e /gpfs3/home/umeps/UMRiderLogs/tigge/bsub/um2grb2.fcst.00hr.err.%J.%I.hybrid     # error file name in which %J is replaced by the job ID
+#BSUB -o /gpfs3/home/umeps/UMRiderLogs/tigge/bsub/um2grb2.fcst.00hr.out.%J.%I.hybrid     # output file name in which %J is replaced by the job ID
 
 # find out the directory of this bash script after submitted to bsub
 DIR="$( cd "$( dirname "${BASH_SOURCE[1]}" )" && pwd )"
@@ -33,11 +33,11 @@ echo "export UMRIDER_VARS="$UMRIDER_VARS
 echo "export GRIB2TABLE="$GRIB2TABLE
 
 # sourcing umtid_bashrc to load module python-uvcdat-iris!
-#source "$DIR/../umtid_bashrc"
+source "$DIR/../umtigge_bashrc"
 # get the hour to pass command line argument (from based on JOB index)
 hour=$(printf "%02d" ${LSB_JOBINDEX})     # 2-digit number starting with 0
-#echo "hour="${hour}
+
 hour0=$(expr $hour - 6)
 # execute the script
-/gpfs2/home/arulalan/miniconda2/envs/iris-1.10.dev1/bin/python $g2script --start_long_fcst_hour=$hour0 --end_long_fcst_hour=$hour
+python $g2script --start_long_fcst_hour=$hour0 --end_long_fcst_hour=$hour
 

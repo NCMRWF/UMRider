@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source /gpfs2/home/arulalan/.bashrc
+source /gpfs2/home/umeps/.bashrc
 
 export UMRIDER_STARTDATE=$(date +'%Y%m%d')
 

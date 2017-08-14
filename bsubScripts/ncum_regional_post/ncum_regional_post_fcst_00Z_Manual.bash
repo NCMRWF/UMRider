@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 #BSUB -a poe                  # set parallel operating environment
-###BSUB -J u2g2reg[6-78:6]    # job name we need utp 78, then only it will extract upto 75 grib2.
+#BSUB -J u2g2reg[6-78:6]    # job name we need utp 78, then only it will extract upto 75 grib2.
 #BSUB -W 06:00                # wall-clock time (hrs:mins)
 #BSUB -n 16                   # number of tasks in job (max task in one node)
 #BSUB -x                      # exclusive mode
