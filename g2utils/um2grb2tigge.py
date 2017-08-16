@@ -1382,7 +1382,7 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
     
     global _preExtension_, __end_long_fcst_hour__, __anlFileNameStructure__,\
            __fcstFileNameStructure__, __fcst_step_hour__, \
-           __anl_step_hour__,checkOut __utc__, __start_long_fcst_hour__ 
+           __anl_step_hour__, __utc__, __start_long_fcst_hour__ 
            
     if ftype in ['ana', 'anl']:
         outFileNameStructure = __anlFileNameStructure__

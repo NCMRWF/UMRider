@@ -13,7 +13,7 @@ PS1="[`hostname -s`]["'$PWD]> '
 export UVCDAT_ANONYMOUS_LOG=no
 # load the required modules to run UMRider
 module unload GNU-UVCDAT-IRIS/2.4.0_1.10.0d0
-module load GNU-IRIS-TIGGE/1.10.dev1
+module load GNU-IRIS-TIGGE-1.10/1.10
 module load GNU-qt/4.8.4
 module load GNU-gribapi/1.21.0
 module load GNU-wgrib2/2.0.4
