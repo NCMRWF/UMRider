@@ -1,10 +1,18 @@
 # Change Log
 
-## [v2.0.5](https://github.com/NCMRWF/UMRider/tree/v2.0.5) (2017-08-14)
+## [v2.0.6](https://github.com/NCMRWF/UMRider/tree/v2.0.6) (2017-09-08)
+[Full Changelog](https://github.com/NCMRWF/UMRider/compare/v2.0.5...v2.0.6)
+
+**Merged pull requests:**
+
+- Solar Wind Energy Global Hourly Input Preparation  [\#138](https://github.com/NCMRWF/UMRider/pull/138) ([arulalant](https://github.com/arulalant))
+
+## [v2.0.5](https://github.com/NCMRWF/UMRider/tree/v2.0.5) (2017-08-16)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v2.0.4...v2.0.5)
 
 **Merged pull requests:**
 
+- Update TIGGE [\#137](https://github.com/NCMRWF/UMRider/pull/137) ([arulalant](https://github.com/arulalant))
 - NCUM EPS 6 hourly + TIGGE [\#136](https://github.com/NCMRWF/UMRider/pull/136) ([arulalant](https://github.com/arulalant))
 
 ## [v2.0.4](https://github.com/NCMRWF/UMRider/tree/v2.0.4) (2017-06-12)
