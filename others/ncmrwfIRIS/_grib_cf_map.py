@@ -173,6 +173,7 @@ GRIB2_TO_CF = {
     G2Param(2, 192, 151, 158): CFName(None, 'precipitation_minus_evaporation', 'kg m-2 s-1' ), # 151158
     G2Param(2, 0, 1, 65): CFName('rainfall_flux', 'rainfall_rate', 'kg m-2 s-1'), # 260058
     G2Param(2, 0, 3, 18): CFName('atmosphere_boundary_layer_thickness', None, 'm'), # WMO
+    G2Param(2, 0, 1, 13): CFName('surface_snow_amount_where_land', None, 'kg m-2'), # WMO
     G2Param(2, 0, 1, 13): CFName('snowfall_amount', None, 'kg m-2'), # WMO  
     G2Param(2, 0, 1, 192): CFName('fog_area_fraction', None, '%'), # NCMRWF Local
     G2Param(2, 0, 20, 102): CFName('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', None, '1'), # WMO
@@ -442,6 +443,7 @@ CF_TO_GRIB2 = {
     CFName('stratiform_snowfall_amount', None, 'kg m-2'): G2Param(2, 0, 1, 15), # 260012  
     CFName('convective_snowfall_amount', None, 'kg m-2'): G2Param(2, 0, 1, 14), # 260011
     CFName('snowfall_amount', None, 'kg m-2'): G2Param(2, 0, 1, 13), # WMO
+    CFName('surface_snow_amount_where_land', None, 'kg m-2'): G2Param(2, 0, 1, 13), # WMO
     CFName('canopy_water_amount', None, 'kg m-2'): G2Param(2, 2, 0, 13), # 260189   
     ### NCEP map end ###
     

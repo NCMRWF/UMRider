@@ -211,10 +211,7 @@ if __name__ == '__main__':
     utc = '00'
     inpath = '/gpfs3/home/umeps/EPS/long_fcst/post/'
     outpath = '/gpfs3/home/umeps/EPS/ShortJobs/NCUM_EPS_VSDB_Input'
-    
-    inpath = '/gpfs4/home/arulalan/um2grb2/ArulTest/NCUM_EPS/'
-    outpath = '/gpfs4/home/arulalan/um2grb2/ArulTest/NCUM_EPS_VSDB'
-       
+  
     helpmsg = './ncumeps_create_memavg_vsdb_input.py --date=20160302 --start_long_fcst_hour=24 --end_long_fcst_hour=24'
     try:
         opts, args = getopt.getopt(sys.argv[1:], "d:s:e", ["date=",

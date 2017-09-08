@@ -15,7 +15,10 @@ warning = False
 windCount = 0
 
 ncumSTASH_Vs_cf = {
+# http://reference.metoffice.gov.uk/um/stash/m01s00i023
+'m01s00i023': ('surface_snow_amount_where_land', None, 'Kg m-2', None), # update standard_name instead of WRONG standard name (by default) as snowfall_amount
 'm01s01i202': ('surface_net_downward_shortwave_flux', None, 'W m-2', None),
+'m01s01i238': ('surface_downwelling_longwave_flux_in_air', None, 'W m-2', None),
 'm01s01i216': ('surface_diffuse_downwelling_shortwave_flux_in_air', None, 'W m-2', None),
 'm01s03i229': ('water_evaporation_flux_from_soil', None, 'kg m-2', None),
 'm01s30i403': ('atmosphere_mass_content_of_dust_dry_aerosol_particles', None, 'kg m-2', None),
@@ -25,7 +28,7 @@ ncumSTASH_Vs_cf = {
 'm01s05i233': ('atmosphere_convective_available_potential_energy_wrt_surface', None, 'J kg-1', None),
 'm01s05i234': ('atmosphere_convective_inhibition_wrt_surface', None, 'J kg-1', None),
 # 50meter B-Grid U component wind
-'m01s15i212': ('x_wind', None, 'm s-1', 50),
+'m01s15i212': ('x_wind', None, 'm s-1', 50),   
 # 50meter B-Grid V component wind
 'm01s15i213': ('y_wind', None, 'm s-1', 50),
 'm01s00i253': (None, 'density_r_r_in_air', None, None),
@@ -42,8 +45,8 @@ duplicateSTASH_vs_cf = {
 # duplicate STASH but cell_methods are different, variables comes here.
 # STASH : {cell_method1 : (standard_name, long_name, unit, height),
 #          cell_method2 : (standard_name, long_name, unit, height)}
-'m01s03i236': {'maximum': (None, 'air_temperature_maximum', 'K', 1.5),
-               'minimum': (None, 'air_temperature_minimum', 'K', 1.5)}
+'m01s03i236': {'maximum': (None, 'air_temperature_maximum', 'K', None),
+               'minimum': (None, 'air_temperature_minimum', 'K', None)}
 }
 
 G2Param_vs_cf = {

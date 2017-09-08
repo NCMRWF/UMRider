@@ -1,5 +1,5 @@
 """
-This is script used to load all the parameters from configure text file 
+This is script used to load all the parameters from configure text file
 and cross check either all the paths are valid or not.
 
 Written by : Arulalan.T
@@ -7,26 +7,32 @@ Date : 07.Dec.2015
 Update : 02.Mar.2016
 """
 
-import os, sys, time, datetime  
+import os, sys, time, datetime
 # get this script abspath
 scriptPath = os.path.dirname(os.path.abspath(__file__))
 
-def uniquifyListInOrder(seq, idfun=None): 
-   # link : http://www.peterbe.com/plog/uniqifiers-benchmark taken f5
-   # order preserving
-   if idfun is None:
-       def idfun(x): return x
-   seen = {}
-   result = []
-   for item in seq:
-       marker = idfun(item)       
-       if marker in seen: continue
-       seen[marker] = 1
-       result.append(item)
-   return result
-# end of def uniquifyListInOrder(seq, idfun=None): 
 
-# get environment variable for setup file otherwise load default local path 
+def uniquifyListInOrder(seq, idfun=None):
+    # link : http://www.peterbe.com/plog/uniqifiers-benchmark taken f5
+    # order preserving
+    if idfun is None:
+
+        def idfun(x):
+            return x
+
+    seen = {}
+    result = []
+    for item in seq:
+        marker = idfun(item)
+        if marker in seen: continue
+        seen[marker] = 1
+        result.append(item)
+    return result
+
+
+# end of def uniquifyListInOrder(seq, idfun=None):
+
+# get environment variable for setup file otherwise load default local path
 setupfile = os.environ.get('UMRIDER_SETUP', os.path.join(scriptPath, 'um2grb2_setup.cfg')).strip()
 if not os.path.isfile(setupfile):
     raise ValueError("UMRIDER_SETUP file doesnot exists '%s'" % setupfile)
@@ -45,7 +51,8 @@ if not clines:
 
 clines = [l.split('=') for l in clines]
 cdic = {}
-for k,v in clines: cdic[k.strip()] = v.strip()
+for k, v in clines:
+    cdic[k.strip()] = v.strip()
 try:
     pass
     # get the dictionary keys, values
@@ -54,7 +61,7 @@ except Exception as e:
     raise ValueError("got problem while reading by split (=) from file %s. Err %s" % (setupfile, str(e)))
 
 # store into local variables
-inPath = cdic.get('inPath', None)  
+inPath = cdic.get('inPath', None)
 outPath = cdic.get('outPath', None)
 tmpPath = cdic.get('tmpPath', None)
 
@@ -89,7 +96,7 @@ end_long_fcst_hour_at_00z = eval(cdic.get('end_long_fcst_hour_at_00z', '240'))
 end_long_fcst_hour_at_12z = eval(cdic.get('end_long_fcst_hour_at_12z', '120'))
 fillFullyMaskedVars = eval(cdic.get('fillFullyMaskedVars', 'None'))
 anlOutGrib2FilesNameStructure = eval(cdic.get('anlOutGrib2FilesNameStructure', 'None'))
-fcstOutGrib2FilesNameStructure = eval(cdic.get('fcstOutGrib2FilesNameStructure','None'))
+fcstOutGrib2FilesNameStructure = eval(cdic.get('fcstOutGrib2FilesNameStructure', 'None'))
 createGrib2CtlIdxFiles = eval(cdic.get('createGrib2CtlIdxFiles', 'True'))
 convertGrib2FilestoGrib1Files = eval(cdic.get('convertGrib2FilestoGrib1Files', 'False'))
 createGrib1CtlIdxFiles = eval(cdic.get('createGrib1CtlIdxFiles', 'False'))
@@ -99,13 +106,14 @@ wgrib2Arguments = cdic.get('wgrib2Arguments', '-set_grib_type complex2 -grib_out
 wgrib2Arguments = None if wgrib2Arguments in ['None', ''] else wgrib2Arguments
 callBackScript = cdic.get('callBackScript', None)
 callBackScript = None if callBackScript in ['None', ''] else callBackScript
+ensemble_member = eval(cdic.get('ensemble_member', 'None'))
 setGrib2TableParameters = eval(cdic.get('setGrib2TableParameters', 'None'))
 write2NetcdfFile = cdic.get('write2NetcdfFile', 'False')
 write2NetcdfFile = eval(write2NetcdfFile) if write2NetcdfFile in ['True', 'False'] else write2NetcdfFile
 
 if soilFirstSecondFixedSurfaceUnit not in ('cm', 'mm'):
     raise ValueError("soilFirstSecondFixedSurfaceUnit takes either 'cm' or 'mm'")
-    
+
 if anlOutGrib2FilesNameStructure:
     if not anlOutGrib2FilesNameStructure[-1].endswith('2'):
         raise ValueError('anlOutGrib2FilesNameStructure last option must endswith 2 to indicating that grib2 file')
@@ -113,7 +121,7 @@ if anlOutGrib2FilesNameStructure:
 if fcstOutGrib2FilesNameStructure:
     if not fcstOutGrib2FilesNameStructure[-1].endswith('2'):
         raise ValueError('fcstOutGrib2FilesNameStructure last option must endswith 2 to indicating that grib2 file')
-        
+
 if createGrib1CtlIdxFiles and not convertGrib2FilestoGrib1Files:
     raise ValueError("Enabled createGrib1CtlIdxFiles option, but not enabled convertGrib2FilestoGrib1Files option")
 
@@ -146,7 +154,7 @@ if fillFullyMaskedVars:
     if not isinstance(fillFullyMaskedVars, (int, float)):
         raise ValueError("fillFullyMaskedVars must be either interger or float")
 
-# check the variable's path 
+# check the variable's path
 #for name, path in [('inPath', inPath), ('outPath', outPath), ('tmpPath', tmpPath)]:
 #    if path is None:
 #        raise ValueError("In configure file, '%s' path is not defined !" % name)
@@ -159,7 +167,7 @@ if targetGridFile:
     if not os.path.isfile(targetGridFile):
         raise ValueError("In configure file, targetGridFile = %s' path does not exists" % targetGridFile)
     targetGridFile = os.path.abspath(targetGridFile)
-        
+
 if callBackScript is not None:
     if not os.path.exists(callBackScript):
         raise ValueError("In configure file, callBackScript = %s' path does not exists" % callBackScript)
@@ -172,11 +180,11 @@ if start_long_fcst_hour % fcst_step_hour:
 if os.environ.has_key('UMRIDER_STARTDATE'):
     startdate = os.environ.get('UMRIDER_STARTDATE')
     print "startdate is overridden by environment variable UMRIDER_STARTDATE", startdate
-    
+
 if os.environ.has_key('UMRIDER_ENDDATE'):
     enddate = os.environ.get('UMRIDER_ENDDATE')
-    print "enddate is overridden by environment variable UMRIDER_ENDDATE", enddate    
-    
+    print "enddate is overridden by environment variable UMRIDER_ENDDATE", enddate
+
 # get the environment variable startdate and enddate, if not then get it from setup config file.
 startdate = startdate.strip()
 enddate = enddate.strip()
@@ -190,14 +198,14 @@ if enddate not in ['None', None]:
     if sDay > eDay:
         raise ValueError("Start date must be less than End date or wise-versa")
     if sDay == eDay:
-        raise ValueError("Both start date and end date are same")     
-    
-    date = (startdate, enddate)   
+        raise ValueError("Both start date and end date are same")
+
+    date = (startdate, enddate)
 else:
     date = startdate
 # end of if enddate not in ['None', None]:
 
-# get environment variable for vars file otherwise load default local path 
+# get environment variable for vars file otherwise load default local path
 varfile = os.environ.get('UMRIDER_VARS', os.path.join(scriptPath, 'um2grb2_vars.cfg')).strip()
 if not os.path.isfile(varfile):
     raise ValueError("UMRIDER_VARS file doesnot exists '%s'" % varfile)
@@ -206,18 +214,19 @@ print "Reading configure file to load the paths"
 
 # clean it up and store as list of tuples contains both varName and varSTASH
 vl = [i.strip() for i in open(varfile).readlines() if i]
-neededVars = [j if len(j) == 2 else j[0] for j in 
-                 [eval(i) for i in vl if i and not i.startswith(('#', '/', '!', '\n', '%'))]]
+neededVars = [
+    j if len(j) == 2 else j[0] for j in [eval(i) for i in vl if i and not i.startswith(('#', '/', '!', '\n', '%'))]
+]
 if not neededVars:
     raise ValueError("Empty variables list loaded from %s" % varfile)
 
-# set() changes the order. So using this function retains the order and 
+# set() changes the order. So using this function retains the order and
 # removing the duplicates.
 neededVars = uniquifyListInOrder(neededVars)
 
-# still user can pass convertVarIdx via bsub to accept one var per node. 
-# currently configured only for tigge-eps 
-convertVarIdx = eval(cdic.get('convertVarIdx', 'None')) # index should start from 1, not 0.
+# still user can pass convertVarIdx via bsub to accept one var per node.
+# currently configured only for tigge-eps
+convertVarIdx = eval(cdic.get('convertVarIdx', 'None'))
 
 print "*" * 80
 print "UMtype = ", UMtype
@@ -266,10 +275,11 @@ else:
     if wgrib2Arguments: print "wgrib2Arguments = ", wgrib2Arguments
 
 if callBackScript: print "callBackScript = ", callBackScript
+if ensemble_member: print "ensemble_member = ", ensemble_member
 print "Successfully loaded the above params from UMRIDER_SETUP configure file!", setupfile
 print "*" * 80
-print "Successfully loaded the below variables from UMRIDER_VARS configure file!", varfile 
-print "\n".join([str(i+1)+' : ' + str(tu) for i, tu in enumerate(neededVars)])
+print "Successfully loaded the below variables from UMRIDER_VARS configure file!", varfile
+print "\n".join([str(i + 1) + ' : ' + str(tu) for i, tu in enumerate(neededVars)])
 print "The above %d variables will be passed to UMRider" % len(neededVars)
 print "*" * 80
 print "\n" * 4

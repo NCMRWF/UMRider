@@ -43,7 +43,7 @@ def createTarBalls(path, today, member):
     os.chdir(inpath)
     
     for tgf in os.listdir('.'):
-        cmd = tigge_check + '-v -w %s/*' % tgf
+        cmd = tigge_check + '   -v -w %s/*' % tgf
         tigge_check_val = os.system(cmd)  # it should return 0 on pass 
         if tigge_check_val != 0 : 
             print "Error : While checking via tigge_check cmd got error!"
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     ftp_server="arulalan@ftp"
     date = None
     member = '000'
-    outpath = '/gpfs3/home/umeps/EPS/ShortJobs/NCUM_TIGGE/%s/'
+    outpath = '/gpfs3/home/umeps/EPS/ShortJobs/NCUM_EPS_TIGGE/%s/'
     
     helpmsg = 'tigge_create_tarball_g2files_put_into_ftp.py --date=20160302 --member=001'
     try:
