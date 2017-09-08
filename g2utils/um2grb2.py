@@ -189,6 +189,7 @@ _orderedVars_ = {'PressureLevel': [
 ('y_wind', 'm01s03i226'), 
 ('x_wind', 'm01s15i212'),  # 50meter B-Grid U component wind 
 ('y_wind', 'm01s15i213'),  # 50meter B-Grid V component wind     
+
 ('visibility_in_air', 'm01s03i247'),
 ('precipitation_amount', 'm01s05i226'),
 ('stratiform_snowfall_amount', 'm01s04i202'),
@@ -212,6 +213,7 @@ _orderedVars_ = {'PressureLevel': [
 ('surface_upward_sensible_heat_flux', 'm01s03i217'),
 ('surface_downwelling_shortwave_flux_in_air', 'm01s01i235'),
 ('surface_downwelling_longwave_flux', 'm01s02i207'),
+('surface_downwelling_longwave_flux_in_air', 'm01s01i238'),
 ('surface_net_downward_longwave_flux', 'm01s02i201'), 
 ('surface_net_downward_shortwave_flux', 'm01s01i202'),
 ('atmosphere_boundary_layer_thickness', 'm01s00i025'),
@@ -728,6 +730,8 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
             ('surface_altitude', 'm01s00i033')]
         # the cube contains Instantaneous data at every 24-hours.        
         # but we need to extract every 0th hours instantaneous.
+        if __anl_step_hour__ == 1:
+            varNamesSTASH.remove(('geopotential_height', 'm01s16i202'))
         fcstHours = numpy.array([0,])     
         doMultiHourlyMean = False
     
@@ -813,15 +817,21 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                         ('air_temperature', 'm01s03i236'),
                         ('air_pressure_at_sea_level', 'm01s16i222'),                              
                         ('specific_humidity', 'm01s03i237'),
-                        ('surface_air_pressure', 'm01s00i409'),
-                        ('x_wind', 'm01s03i225'), 
-                        ('y_wind', 'm01s03i226'),                        
+                        ('surface_air_pressure', 'm01s00i409'),                        
+                        ('x_wind', 'm01s03i225'),   # 10m
+                        ('y_wind', 'm01s03i226'),   # 10m 
+                        ('x_wind', 'm01s15i212'),    # 50m
+                        ('y_wind', 'm01s15i213'),    # 50m    
+                        ('x_wind', 'm01s15i201'),    # 8 pressureLevels
+                        ('y_wind', 'm01s15i202'),    # 8 pressureLevels
+                        ('geopotential_height', 'm01s16i202'),   # 8 pressureLevels          
+                        ('surface_downwelling_longwave_flux_in_air', 'm01s01i238'),         
                         ('atmosphere_convective_available_potential_energy_wrt_surface', 'm01s05i233'), #CAPE
                         ('atmosphere_convective_inhibition_wrt_surface', 'm01s05i234'), #CIN
                         ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
                         ('cloud_area_fraction_assuming_maximum_random_overlap', 'm01s09i217')]
 
-        if inDataPathHour == '00' and __anl_step_hour__ != 3:
+        if inDataPathHour == '00' and __anl_step_hour__ == 6:
             # remove only if __anl_step_hour__ is 6 hours.
             # for 3 hour analysis, (3rd hour) we need to extract these vars
             # from the umglca_pe file. But for 00th analysis the following vars 
@@ -855,8 +865,10 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                           ('convective_rainfall_amount', 'm01s05i201'),]
         # all vars 
         varNamesSTASH = varNamesSTASH1 + varNamesSTASH2
-        # the cube contains Instantaneous data at every 3-hours.     
-        if __anl_step_hour__ == 3:
+        # the cube contains Instantaneous data at every 1-hours.  
+        if __anl_step_hour__ == 1: 
+            fcstHours = numpy.arange(0,6,1)   
+        elif __anl_step_hour__ == 3:
             # applicable only for 3 hour instantaneous/intervals
             fcstHours = numpy.array([0, 3,]) # yes, it must have both '0' & '3'
             # to get both 0 & 3 rd hour instantaneous data.
@@ -1032,12 +1044,18 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('air_pressure_at_sea_level', 'm01s16i222'),
                     ('specific_humidity', 'm01s03i237'),
                     ('surface_air_pressure', 'm01s00i409'),
-                    ('x_wind', 'm01s03i225'), 
-                    ('y_wind', 'm01s03i226'),
+                    ('x_wind', 'm01s03i225'),   # 10m
+                    ('y_wind', 'm01s03i226'),   # 10m 
+                    ('x_wind', 'm01s15i212'),    # 50m
+                    ('y_wind', 'm01s15i213'),    # 50m    
+                    ('x_wind', 'm01s15i201'),    # 8 pressureLevels
+                    ('y_wind', 'm01s15i202'),    # 8 pressureLevels
+                    ('geopotential_height', 'm01s16i202'),   # 8 pressureLevels     
                     ('atmosphere_convective_available_potential_energy_wrt_surface', 'm01s05i233'), # CAPE
                     ('atmosphere_convective_inhibition_wrt_surface', 'm01s05i234'), #CIN
                     ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
                     ('cloud_area_fraction_assuming_maximum_random_overlap', 'm01s09i217'),
+                    ('surface_downwelling_longwave_flux_in_air', 'm01s01i238'),
                     # The precipitation_amount, *snowfall_amount, and
                     # *rainfall_amount variable must be at the last
                     # in this list. we will have to do 6 hourly accumulation
@@ -1243,7 +1261,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('geopotential_height', 'm01s16i202'), # 8 pressure levels 
                     ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
                     ('cloud_area_fraction_assuming_maximum_random_overlap', 'm01s09i217'),
-                    ('water_evaporation_flux_from_soil', 'm01s03i229'),
+                    ('water_evaporation_flux_from_soil','m01s03i229'),
                     # The precipitation_amount, *snowfall_amount, and
                     # *rainfall_amount variable must be at the last
                     # in this list. we will have to do 6 hourly accumulation
@@ -1890,7 +1908,10 @@ def regridAnlFcstFiles(arg):
                         fcstHours = numpy.array([fhr[idx] for fhr in fcstHours])
                     print varName,"fcstHours", fcstHours
             # end of if (varName, varSTASH) in [...]:
-            
+            if (varName, varSTASH) in [('surface_downwelling_shortwave_flux_in_air', 'm01s01i235')]:
+                if dtype == 'ana' and fileName == 'umglca_pe000':
+                    fcstHours = numpy.array([0.5, 1.5, 2.5, 3.5, 4.5, 5.5])
+                    
             if (varName, varSTASH) in _accumulationVars_:
                 # From pe files, we need to extract precipitation_amount fileds
                 # as 6 hourly accumulation, but other variables from pe files
@@ -1927,6 +1948,8 @@ def regridAnlFcstFiles(arg):
                     # the cube contains data of every 1-hourly accumutated.
                     # but we need to make only every 6th hourly accumutated.
                     fcstHours = numpy.array([(0, 1, 2, 3, 4, 5)]) + 0.5 # required since NCUM 10.2 onwards
+                    if __anl_step_hour__ == 1: fcstHours = numpy.array([0, 1, 2, 3, 4, 5]) + 0.5
+                        
                     if __UMtype__ != 'regional':
                         ana_precip_infile, simulated_hr = __getTodayOrYesterdayInfile__(_inDataPath_, fileName)    
                         if ana_precip_infile != infile: 
@@ -2184,7 +2207,9 @@ def regridAnlFcstFiles(arg):
                 if dtype == 'ana':
                     # this is needed for analysis 00th simulated_hr
                     # get the first hour from bounds
-                    if __anl_step_hour__ == 3:                        
+                    if __anl_step_hour__ == 1: 
+                        hr = int(fhr)
+                    elif __anl_step_hour__ == 3:                        
                         # for 3-hourly ana file, we need to subtract 3 to get
                         # corresponding out hr. 
                         # i.e. 3 means 0. Do not applicable for instantaneous fields.
@@ -2585,6 +2610,7 @@ def doShuffleVarsInOrder(fpath):
             if varName in unOrderedPressureLevelVars: orderedVars.append(unOrderedPressureLevelVars[varName])
         # end of for name, STASH in _orderedVars_['PressureLevel']:
         
+        nonpressurevarslist = []  # CAUTION: Try to omit duplicate wind 50m and 10m twice.
         for (varName, varSTASH) in orderedVarsList:
             # skip if user specified var not in non-pressure level vars list 
             if not (varName, varSTASH) in _orderedVars_['nonPressureLevel']: 
@@ -2592,7 +2618,9 @@ def doShuffleVarsInOrder(fpath):
                 continue
             # got non-pressure vars, add to ordered final vars list  
             if varName in unOrderedNonPressureLevelVars: 
-                orderedVars.append(unOrderedNonPressureLevelVars[varName])
+                if not varName in nonpressurevarslist:
+                    orderedVars.append(unOrderedNonPressureLevelVars[varName])
+                    nonpressurevarslist.append(varName)
             elif (varName, varSTASH) in _ncfilesVars_:
                 ## generate nc file name
                 ncfpath = varSTASH + '_' + '.'.join(fpath.split('.')[:-1]) + '.nc'
@@ -3137,7 +3165,7 @@ def doShuffleVarsInOrder(fpath):
 def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
             
     global _current_date_, _opPath_, _preExtension_, __end_long_fcst_hour__, \
-           __anlFileNameStructure__, __fcstFileNameStructure__, \
+           __anlFileNameStructure__, __fcstFileNameStructure__, __anl_step_hour__, \
            __end_long_fcst_hour__, __fcst_step_hour__, __utc__, __start_long_fcst_hour__
             
     print "Lets re-order variables for all the files!!!"
@@ -3187,7 +3215,8 @@ def doShuffleVarsInOrderInParallel(ftype, simulated_hr):
         # since ncum producing analysis files 00, 06, 12, 18 utc cycles and 
         # its forecast time starting from 0 and reference time based on utc.
         # so we should calculate correct hour as below.
-        for fcsthr in range(0+simulated_hr, 6+simulated_hr, 6):            
+        astep = 1 if __anl_step_hour__ == 1 else 6
+        for fcsthr in range(0+simulated_hr, 6+simulated_hr, astep):            
             # generate the out file name based on actual informations                                 
             outFn = __genAnlFcstOutFileName__(__anlFileNameStructure__, 
                                   outFnIndecies, _current_date_, fcsthr, 

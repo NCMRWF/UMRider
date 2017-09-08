@@ -182,8 +182,8 @@ _orderedVars_ = {'PressureLevel': [
 ('land_binary_mask', 'm01s00i030'),
 ('sea_ice_area_fraction', 'm01s00i031'),
 ('sea_ice_thickness', 'm01s00i032'),
-('snowfall_amount', 'm01s00i023'),
-# the snowfall_amount might be changed as 
+('surface_snow_amount_where_land', 'm01s00i023'),
+# the surface_snow_amount_where_land might be changed as 
 # liquid_water_content_of_surface_snow by convert it into
 # water equivalent of snow amount, before re-ordering itself.
 ('liquid_water_content_of_surface_snow', 'm01s00i023'),
@@ -380,7 +380,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                         ('surface_upward_sensible_heat_flux', 'm01s03i217'),   
                         ('toa_outgoing_longwave_flux', 'm01s02i205'),
                         ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
-                        ('snowfall_amount', 'm01s00i023')]         
+                        ('surface_snow_amount_where_land', 'm01s00i023')]         
         # the cube contains accumulated/min/max data at every 24-hours.        
         
         if hr: 
@@ -564,12 +564,12 @@ def packEnsembles(arg):
             numpy.ma.set_fill_value(regdCube.data, 9.999e+20)    
         # end of if exmode == 'mask':
         
-        if (varName, varSTASH) in [('snowfall_amount', 'm01s00i023')]:
-            # the snowfall_amount need to be changed as 
+        if (varName, varSTASH) in [('surface_snow_amount_where_land', 'm01s00i023')]:
+            # the surface_snow_amount_where_land need to be changed as 
             # liquid_water_content_of_surface_snow by convert it into
             # water equivalent of snow amount.                    
             _convert2WEASD(regdCube)
-        # end of if (varName, varSTASH) == ('snowfall_amount', 'm01s00i023'):
+        # end of if (varName, varSTASH) == ('surface_snow_amount_where_land', 'm01s00i023'):
                 
         if regdCube.coords('soil_model_level_number') or regdCube.coords('depth'):
             # NOTE : THIS SECTION WILL WORKS ONLY FOR SOIL MOISTURE AND

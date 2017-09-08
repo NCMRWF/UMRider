@@ -388,7 +388,7 @@ ncumSTASH_tiggeVars = {
 ('time_integrated_toa_outgoing_longwave_flux', 'm01s02i205'): ('time_integrated_outgoing_long_wave_radiation', 'ttr', 'W m-2 s'),
 
 ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'): ('total_cloud_cover', 'tcc', '%'),
-('snowfall_amount', 'm01s00i023'): ('snow_depth_water_equivalent', 'sd', 'kg m-2')
+('surface_snow_amount_where_land', 'm01s00i023'): ('snow_depth_water_equivalent', 'sd', 'kg m-2')
 ######################## END OF TIGGE-VALID-VARS-IN-BOTH-NCUM-DETERMINISTIC-ENSEMBLES ################
 
 ### Doubts fluxes input needs to be divided by no of sec in the 3-hour or 1-hour 
@@ -1209,10 +1209,21 @@ def makeTotalCummulativeVars(arg):
     fname += umfcstype+ '_sl_%s_' + ens + '_0000_' + svar + '.nc' 
     infiles = [os.path.join(*[_opPath_, ens, svar, fname % str(t).zfill(4)]) 
                         for t in range(6, __end_long_fcst_hour__+1, 6)]
-
+    
+    for infile in infiles:
+        if not os.path.isfile(infile):
+            print "Error: The infile '%s' doesnt exist to calculate makeTotalCummulativeVars" % infile
+        else:
+            print "Exists: ", infile
+            try:  
+                cubes = iris.load(infile)[0]
+            except Exception as e:
+                print "Error : Unable to load file - ", infile
+    # end of for infile in infiles:
+    
     try:
         cubes = iris.load(infiles)[0]
-    except Exception as e:
+    except Exception as e:     
         raise ValueError("Unable to load files from %s - while makeTotalCummulativeVars" % str(infiles))
     
     # get the cummulated cubes generator

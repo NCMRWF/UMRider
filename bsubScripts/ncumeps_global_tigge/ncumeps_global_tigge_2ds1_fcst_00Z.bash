@@ -8,8 +8,9 @@
 #BSUB -x                      # exclusive mode
 #BSUB -R span[ptile=16]       # task per node
 #BSUB -q ensemble             	  # queue
+#BSUB -L /bin/bash
 #BSUB -e /gpfs3/home/umeps/UMRiderLogs/tigge/bsub/um2grb2.tig2d1.err.%J.%I.hybrid     # error file name in which %J is replaced by the job ID
-#BSUB -o /gpfs3/home/umeps/UMRiderLogs/tigge/bsub/um2grb2.tig2d1.00hr.out.%J.%I.hybrid     # output file name in which %J is replaced by the job ID
+#BSUB -o /gpfs3/home/umeps/UMRiderLogs/tigge/bsub/um2grb2.tig2d1.out.%J.%I.hybrid     # output file name in which %J is replaced by the job ID
 
 # find out the directory of this bash script after submitted to bsub
 DIR="$( cd "$( dirname "${BASH_SOURCE[1]}" )" && pwd )"
