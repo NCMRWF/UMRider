@@ -388,7 +388,7 @@ ncumSTASH_tiggeVars = {
 ('time_integrated_toa_outgoing_longwave_flux', 'm01s02i205'): ('time_integrated_outgoing_long_wave_radiation', 'ttr', 'W m-2 s'),
 
 ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'): ('total_cloud_cover', 'tcc', '%'),
-('surface_snow_amount_where_land', 'm01s00i023'): ('snow_depth_water_equivalent', 'sd', 'kg m-2')
+('snowfall_amount', 'm01s00i023'): ('snow_depth_water_equivalent', 'sd', 'kg m-2')
 ######################## END OF TIGGE-VALID-VARS-IN-BOTH-NCUM-DETERMINISTIC-ENSEMBLES ################
 
 ### Doubts fluxes input needs to be divided by no of sec in the 3-hour or 1-hour 

@@ -165,7 +165,7 @@ GRIB2_TO_CF = {
     G2Param(2, 192, 151, 158): CFName(None, 'precipitation_minus_evaporation', 'kg m-2 s-1' ), # 151158
     G2Param(2, 0, 1, 65): CFName('rainfall_flux', 'rainfall_rate', 'kg m-2 s-1'), # 260058
     G2Param(2, 0, 3, 18): CFName('atmosphere_boundary_layer_thickness', None, 'm'), # WMO
-    G2Param(2, 0, 1, 60): CFName('surface_snow_amount_where_land', None, 'kg m-2'), # TIGGE
+#    G2Param(2, 0, 1, 60): CFName('surface_snow_amount_where_land', None, 'kg m-2'), # TIGGE
     G2Param(2, 0, 1, 60): CFName('snowfall_amount', None, 'kg m-2'), # TIGGE
     G2Param(2, 0, 1, 192): CFName('fog_area_fraction', None, '%'), # NCMRWF Local
     G2Param(2, 0, 20, 102): CFName('atmosphere_optical_thickness_due_to_dust_ambient_aerosol', None, '1'), # WMO
@@ -383,7 +383,7 @@ CF_TO_GRIB2 = {
     CFName('toa_outgoing_shortwave_flux_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 4, 198), # NCMRWF Local
     CFName('toa_outgoing_longwave_flux_assuming_clear_sky', None, 'W m-2'): G2Param(2, 0, 5, 195), # NCMRWF Local
     
-    CFName('surface_snow_amount_where_land', None, 'kg m-2'): G2Param(2, 0, 1, 60), # TIGGE
+#    CFName('surface_snow_amount_where_land', None, 'kg m-2'): G2Param(2, 0, 1, 60), # TIGGE
     CFName('snowfall_amount', None, 'kg m-2'): G2Param(2, 0, 1, 60), # TIGGE
     
     #WMO need to set  surface level type as tropopause (7)
