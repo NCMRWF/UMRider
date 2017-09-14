@@ -1,10 +1,12 @@
 # Change Log
 
-## [v2.0.6](https://github.com/NCMRWF/UMRider/tree/v2.0.6) (2017-09-08)
+## [v2.0.6](https://github.com/NCMRWF/UMRider/tree/v2.0.6) (2017-09-14)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v2.0.5...v2.0.6)
 
 **Merged pull requests:**
 
+- Fixed bugs in checkOutFileExists function [\#140](https://github.com/NCMRWF/UMRider/pull/140) ([arulalant](https://github.com/arulalant))
+- Bug fixed [\#139](https://github.com/NCMRWF/UMRider/pull/139) ([arulalant](https://github.com/arulalant))
 - Solar Wind Energy Global Hourly Input Preparation  [\#138](https://github.com/NCMRWF/UMRider/pull/138) ([arulalant](https://github.com/arulalant))
 
 ## [v2.0.5](https://github.com/NCMRWF/UMRider/tree/v2.0.5) (2017-08-16)
