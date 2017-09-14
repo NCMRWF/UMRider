@@ -665,6 +665,7 @@ def packEnsembles(arg):
         t = regdCube.coords('time')[0]
         fp = regdCube.coords('forecast_period')[0]
         ft = regdCube.coords('forecast_reference_time')[0]
+        hg = regdCube.coords('height')
         # create ensemble packed cubes 
         ensembleData = iris.cube.Cube(ensembleData, regdCube.standard_name, 
                                  regdCube.long_name, regdCube.var_name,
@@ -675,6 +676,7 @@ def packEnsembles(arg):
         ensembleData.add_aux_coord(fp)
         ensembleData.add_aux_coord(ft)
         ensembleData.add_aux_coord(t)
+        if hg: ensembleData.add_aux_coord(hg[0])
         # create cell method for ensembles
         cm = iris.coords.CellMethod('realization', ('realization',), 
                                intervals=('1',), comments=(' ENS',))
@@ -1109,15 +1111,15 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
     # get the out fileName Structure based on pre / user defined indecies
     outFnIndecies = __getAnlFcstFileNameIndecies__(outFileNameStructure)
     status = None
-    fnames = [] 
-    print "fhrs = ", fhrs
+    fnames_list = [] 
     for fhr in fhrs:
         # generate the out file name based on actual informations.
         # here preExtension is empty string to create final needed out file name                        
         fname = __genAnlFcstOutFileName__(outFileNameStructure, outFnIndecies,  
                                                                date, fhr, utc)
+        fnames_list.append(fname)
         fpath = os.path.join(path, fname) 
-        fnames.append(fname)       
+        print "checking outfile", fhr, fname                
         for ext in ['', '.ctl', '.idx']:
             fpath = os.path.join(path, fname+ext)
             if os.path.isfile(fpath):
@@ -1141,36 +1143,17 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
                     status = 'PartialFilesExist'
                     break
         # end of for ext in ['', '.ctl', '.idx']:
-        
-        for ext in [_preExtension_, '_Ordered']:
-            fpath = os.path.join(path, fname)
-            if os.path.isfile(fpath) and ext in fpath:
-                try:
-                    os.remove(fpath)
-                    print "removed file : ", fpath
-                except Exception, e:
-                        print "Got error while removing file", e
-                finally:
-                    status = 'IntermediateFilesExist'
-                    print "removed intermediate file" 
-        # end of for ext in [_preExtension_, '_Ordered']:
-    # end of for fhr in fhrs:
-    
-    ifiles = [fname for fname in os.listdir(path) if fname.endswith('.nc')]    
-    if ifiles:        
+    # end of for fhr in fhrs: 
+    ifiles = os.listdir(path) 
+    if ifiles and overwrite:        
         print "Intermediate files are exists in the outdirectory.", path
         for ifile in ifiles:    
-            if not [ifile for fname in fnames if fname.split('.')[0] in ifile]: continue
-            if outFileNameStructure[0] in ifile and utc in ifile and _preExtension_ in ifile:
+            if not [ifile for fname in fnames_list if fname.split('.')[0] in ifile]: continue
+            if outFileNameStructure[0] in ifile and (_preExtension_ in ifile or '_Ordered' in ifile): #and utc in ifile:
                 status = 'IntermediateFilesExist'
-    # end of if ncfiles:
-    if status in ['PartialFilesExist', 'IntermediateFilesExist']:
-        # partial files exist, so make overwrite option as True and do 
-        # recursive call one time to remove all output files.
-        print "Partial/Intermediate out files exist, so going to overwrite all files"
-        return _checkOutFilesStatus(path, ftype, date, utc, overwrite=True)
-    else:
-        return status
+                os.remove(os.path.join(path, ifile))
+                print "removed intermediate file", ifile             
+    # if ifiles and overwrite:
 # end of def _checkOutFilesStatus(path, ftype, date, hr, overwrite):
 
 def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):

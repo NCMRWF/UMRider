@@ -840,6 +840,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                             ('surface_air_pressure', 'm01s00i409'),]:
                 # these vars taken already from qwqg00.pp0 file. so remove it.
                 varNamesSTASH1.remove(varST)         
+                print "removed--", varST, "from umglca_pe000"
         # end of if inDataPathHour == '00' and ...:
         
         if __anl_step_hour__ == 1:
@@ -865,6 +866,10 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                           ('convective_rainfall_amount', 'm01s05i201'),]
         # all vars 
         varNamesSTASH = varNamesSTASH1 + varNamesSTASH2
+        if _requiredPressureLevels_ and not set(_requiredPressureLevels_).issubset([925., 960., 975., 980., 985., 990., 995., 1000.]):
+            # same stash available in pd file also. so remove only incase of chosen pressure level 
+            # not applicable to this pe file.
+            varNamesSTASH.remove(('geopotential_height', 'm01s16i202')) # 8 pressure levels 
         # the cube contains Instantaneous data at every 1-hours.  
         if __anl_step_hour__ == 1: 
             fcstHours = numpy.arange(0,6,1)   
@@ -1072,6 +1077,12 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('convective_snowfall_amount', 'm01s05i202'),
                     ('stratiform_rainfall_amount', 'm01s04i201'),
                     ('convective_rainfall_amount', 'm01s05i201'),]
+        
+        if _requiredPressureLevels_ and not set(_requiredPressureLevels_).issubset([925., 960., 975., 980., 985., 990., 995., 1000.]):
+            # same stash available in pd file also. so remove only incase of chosen pressure level 
+            # not applicable to this pe file.
+            varNamesSTASH.remove(('geopotential_height', 'm01s16i202')) # 8 pressure levels 
+            
         # the cube contains Instantaneous data at every 1-hours.
         if __fcst_step_hour__ == 1:
             # The following variable already available in pf file, but in 3-hour intervals.
@@ -1276,10 +1287,10 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('stratiform_snowfall_amount', 'm01s04i202'),
                     ('stratiform_rainfall_amount', 'm01s04i201'),]
                     
-#        if _requiredPressureLevels_ and set(_requiredPressureLevels_).issubset([925., 960., 975., 980., 985., 990., 995., 1000.]):
-#            # same stash available in pd file also. so include only incase of chosen pressure level 
-#            # applicable to this pe file.
-#            varNamesSTASH.append(('geopotential_height', 'm01s16i202')) # 8 pressure levels            
+        if _requiredPressureLevels_ and not set(_requiredPressureLevels_).issubset([925., 960., 975., 980., 985., 990., 995., 1000.]):
+            # same stash available in pd file also. so remove only incase of chosen pressure level 
+            # not applicable to this pe file.
+            varNamesSTASH.remove(('geopotential_height', 'm01s16i202')) # 8 pressure levels            
             
         # the cube contains Instantaneous data at every 1-hours.
         if __fcst_step_hour__ == 1:
@@ -2030,6 +2041,7 @@ def regridAnlFcstFiles(arg):
             print varConstraint , STASHConstraint ,  fcstRefTimeConstraint , fpConstraint ,       latConstraint , lonConstraint
             if not tmpCube: raise ValueError("unable to extract variable %s %s %s %s" % (varName, varSTASH, str(fhr), infile))
             # Got variable successfully!    
+            print "tmpCube++++", tmpCube, STASHConstraint
             tmpCube = tmpCube[0]
             
             # extract pressure levels
@@ -3444,14 +3456,15 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
     # get the out fileName Structure based on pre / user defined indecies
     outFnIndecies = __getAnlFcstFileNameIndecies__(outFileNameStructure)
     status = None
-    fnames = [] 
+    fnames_list = [] 
     for fhr in fhrs:
         # generate the out file name based on actual informations.
         # here preExtension is empty string to create final needed out file name                        
         fname = __genAnlFcstOutFileName__(outFileNameStructure, outFnIndecies,  
                                                                date, fhr, utc)
+        fnames_list.append(fname)
         fpath = os.path.join(path, fname) 
-        fnames.append(fname)       
+        print "checking outfile", fhr, fname                
         for ext in ['', '.ctl', '.idx']:
             fpath = os.path.join(path, fname+ext)
             if os.path.isfile(fpath):
@@ -3475,36 +3488,17 @@ def _checkOutFilesStatus(path, ftype, date, utc, overwrite):
                     status = 'PartialFilesExist'
                     break
         # end of for ext in ['', '.ctl', '.idx']:
-        
-        for ext in [_preExtension_, '_Ordered']:
-            fpath = os.path.join(path, fname)
-            if os.path.isfile(fpath) and ext in fpath:
-                try:
-                    os.remove(fpath)
-                    print "removed file : ", fpath
-                except Exception, e:
-                        print "Got error while removing file", e
-                finally:
-                    status = 'IntermediateFilesExist'
-                    print "removed intermediate file" 
-        # end of for ext in [_preExtension_, '_Ordered']:
-    # end of for fhr in fhrs:
-    
-    ifiles = [fname for fname in os.listdir(path) if fname.endswith('.nc')]    
-    if ifiles:        
+    # end of for fhr in fhrs: 
+    ifiles = os.listdir(path) 
+    if ifiles and overwrite:        
         print "Intermediate files are exists in the outdirectory.", path
         for ifile in ifiles:    
-            if not [ifile for fname in fnames if fname.split('.')[0] in ifile]: continue
-            if outFileNameStructure[0] in ifile and utc in ifile and _preExtension_ in ifile:
+            if not [ifile for fname in fnames_list if fname.split('.')[0] in ifile]: continue
+            if outFileNameStructure[0] in ifile and (_preExtension_ in ifile or '_Ordered' in ifile): #and utc in ifile:
                 status = 'IntermediateFilesExist'
-    # end of if ncfiles:
-    if status in ['PartialFilesExist', 'IntermediateFilesExist']:
-        # partial files exist, so make overwrite option as True and do 
-        # recursive call one time to remove all output files.
-        print "Partial/Intermediate out files exist, so going to overwrite all files"
-        return _checkOutFilesStatus(path, ftype, date, utc, overwrite=True)
-    else:
-        return status
+                os.remove(os.path.join(path, ifile))
+                print "removed intermediate file", ifile             
+    # if ifiles and overwrite:
 # end of def _checkOutFilesStatus(path, ftype, date, hr, overwrite):
             
 def convertFcstFiles(inPath, outPath, tmpPath, **kwarg):

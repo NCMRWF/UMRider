@@ -16,7 +16,7 @@ windCount = 0
 
 ncumSTASH_Vs_cf = {
 # http://reference.metoffice.gov.uk/um/stash/m01s00i023
-'m01s00i023': ('surface_snow_amount_where_land', None, 'Kg m-2', None), # update standard_name instead of WRONG standard name (by default) as snowfall_amount
+#'m01s00i023': ('surface_snow_amount_where_land', None, 'Kg m-2', None), # update standard_name instead of WRONG standard name (by default) as snowfall_amount
 'm01s01i202': ('surface_net_downward_shortwave_flux', None, 'W m-2', None),
 'm01s01i238': ('surface_downwelling_longwave_flux_in_air', None, 'W m-2', None),
 'm01s01i216': ('surface_diffuse_downwelling_shortwave_flux_in_air', None, 'W m-2', None),

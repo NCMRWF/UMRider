@@ -1,6 +1,7 @@
 #!/bin/bash
 #
 #BSUB -a poe                  # set parallel operating environment
+#BSUB -J u2g2ind
 ###BSUB -J u2g2ind[24-240:24] # job name
 #BSUB -W 06:00                # wall-clock time (hrs:mins)
 #BSUB -n 16                   # number of tasks in job (max task in one node)
@@ -40,6 +41,6 @@ hour0=$(expr $hour - 18)
 # sourcing umtid_bashrc to load module python-uvcdat-iris!
 source "$DIR/../umtid_bashrc"
 # execute the script
-python $g2script --start_long_fcst_hour=${hour0} --end_long_fcst_hour=${hour}
-
+#python $g2script --start_long_fcst_hour=${hour0} --end_long_fcst_hour=${hour}
+python $g2script
 
