@@ -141,7 +141,7 @@ _targetGridRes_ = None
 _reverseLatitude_ = False
 _requiredLat_ = None
 _requiredLon_ = None
-_requiredPressureLevels_ = None
+_requiredPressureLevels_ = []
 _preExtension_ = '_unOrdered'
 _createGrib2CtlIdxFiles_ = True
 _createGrib1CtlIdxFiles_ = False
@@ -821,16 +821,20 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                         ('x_wind', 'm01s03i225'),   # 10m
                         ('y_wind', 'm01s03i226'),   # 10m 
                         ('x_wind', 'm01s15i212'),    # 50m
-                        ('y_wind', 'm01s15i213'),    # 50m    
-                        ('x_wind', 'm01s15i201'),    # 8 pressureLevels
-                        ('y_wind', 'm01s15i202'),    # 8 pressureLevels
-                        ('geopotential_height', 'm01s16i202'),   # 8 pressureLevels          
+                        ('y_wind', 'm01s15i213'),    # 50m                                    
                         ('surface_downwelling_longwave_flux_in_air', 'm01s01i238'),         
                         ('atmosphere_convective_available_potential_energy_wrt_surface', 'm01s05i233'), #CAPE
                         ('atmosphere_convective_inhibition_wrt_surface', 'm01s05i234'), #CIN
                         ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
                         ('cloud_area_fraction_assuming_maximum_random_overlap', 'm01s09i217')]
-
+        
+        if _requiredPressureLevels_ and set(_requiredPressureLevels_).issubset([925., 960., 975., 980., 985., 990., 995., 1000.]):    
+            # same stash available in pd file also. so add only incase of chosen pressure levels 
+            # are applicable to this pe file.
+            varNamesSTASH1 += [('x_wind', 'm01s15i201'),    # 8 pressureLevels
+                              ('y_wind', 'm01s15i202'),    # 8 pressureLevels
+                  ('geopotential_height', 'm01s16i202')]   # 8 pressureLevels
+        
         if inDataPathHour == '00' and __anl_step_hour__ == 6:
             # remove only if __anl_step_hour__ is 6 hours.
             # for 3 hour analysis, (3rd hour) we need to extract these vars
@@ -1052,10 +1056,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('x_wind', 'm01s03i225'),   # 10m
                     ('y_wind', 'm01s03i226'),   # 10m 
                     ('x_wind', 'm01s15i212'),    # 50m
-                    ('y_wind', 'm01s15i213'),    # 50m    
-                    ('x_wind', 'm01s15i201'),    # 8 pressureLevels
-                    ('y_wind', 'm01s15i202'),    # 8 pressureLevels
-                    ('geopotential_height', 'm01s16i202'),   # 8 pressureLevels     
+                    ('y_wind', 'm01s15i213'),    # 50m                        
                     ('atmosphere_convective_available_potential_energy_wrt_surface', 'm01s05i233'), # CAPE
                     ('atmosphere_convective_inhibition_wrt_surface', 'm01s05i234'), #CIN
                     ('cloud_area_fraction_assuming_random_overlap', 'm01s09i216'),
@@ -1077,11 +1078,13 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                     ('convective_snowfall_amount', 'm01s05i202'),
                     ('stratiform_rainfall_amount', 'm01s04i201'),
                     ('convective_rainfall_amount', 'm01s05i201'),]
-        
-        if _requiredPressureLevels_ and not set(_requiredPressureLevels_).issubset([925., 960., 975., 980., 985., 990., 995., 1000.]):
-            # same stash available in pd file also. so remove only incase of chosen pressure level 
-            # not applicable to this pe file.
-            varNamesSTASH.remove(('geopotential_height', 'm01s16i202')) # 8 pressure levels 
+    
+        if _requiredPressureLevels_ and set(_requiredPressureLevels_).issubset([925., 960., 975., 980., 985., 990., 995., 1000.]):    
+            # same stash available in pd file also. so add only incase of chosen pressure levels 
+            # are applicable to this pe file.
+            varNamesSTASH += [('x_wind', 'm01s15i201'),    # 8 pressureLevels
+                              ('y_wind', 'm01s15i202'),    # 8 pressureLevels
+                  ('geopotential_height', 'm01s16i202')]   # 8 pressureLevels     
             
         # the cube contains Instantaneous data at every 1-hours.
         if __fcst_step_hour__ == 1:
