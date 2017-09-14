@@ -5,6 +5,7 @@
 
 **Merged pull requests:**
 
+- Bug fixed in loading pressure levels [\#141](https://github.com/NCMRWF/UMRider/pull/141) ([arulalant](https://github.com/arulalant))
 - Fixed bugs in checkOutFileExists function [\#140](https://github.com/NCMRWF/UMRider/pull/140) ([arulalant](https://github.com/arulalant))
 - Bug fixed [\#139](https://github.com/NCMRWF/UMRider/pull/139) ([arulalant](https://github.com/arulalant))
 - Solar Wind Energy Global Hourly Input Preparation  [\#138](https://github.com/NCMRWF/UMRider/pull/138) ([arulalant](https://github.com/arulalant))
