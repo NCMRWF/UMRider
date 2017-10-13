@@ -1,5 +1,12 @@
 # Change Log
 
+## [v2.0.7](https://github.com/NCMRWF/UMRider/tree/v2.0.7) (2017-10-13)
+[Full Changelog](https://github.com/NCMRWF/UMRider/compare/v2.0.6...v2.0.7)
+
+**Merged pull requests:**
+
+- TIGGE PROD Mode [\#142](https://github.com/NCMRWF/UMRider/pull/142) ([arulalant](https://github.com/arulalant))
+
 ## [v2.0.6](https://github.com/NCMRWF/UMRider/tree/v2.0.6) (2017-09-14)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v2.0.5...v2.0.6)
 
