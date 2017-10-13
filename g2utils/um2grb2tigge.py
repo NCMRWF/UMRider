@@ -406,7 +406,7 @@ def getTiggeFileName(cube):
     prefix = 'z_tigge_c'
     cccc = 'dems' # DEMS Delhi Meteorological Station centre code (WMO Standard)
     mmmm = 'glob'
-    vvvv = 'test' # TIGGE TEST 
+    vvvv = 'prod' # TIGGE production mode 
     cstash = None
     
     # get the cube time and make it as yyyymmddhhmmss
@@ -1006,7 +1006,7 @@ def save_tigge_tweaked_messages(cubeList):
             # https://software.ecmwf.int/wiki/display/TIGGE/Rules+for+data+encoding+and+exchange
             # 4 for TIGGE-NCMRWF Operational data
             # 5 for TIGGE-NCMRWF Test data
-            gribapi.grib_set_long(grib_message, "productionStatusOfProcessedData", 5)
+            gribapi.grib_set_long(grib_message, "productionStatusOfProcessedData", 4) # Operational mode
             
             if cube.coords("realization"):
                 # ensembles tweak 
@@ -1205,7 +1205,7 @@ def makeTotalCummulativeVars(arg):
         lname = 'time_integrated_' + sname 
         rstash = False
     
-    fname = 'z_tigge_c_dems_' +_current_date_+ '000000_glob_test_'  # TIGGE TEST 
+    fname = 'z_tigge_c_dems_' +_current_date_+ '000000_glob_prod_'  # TIGGE prod 
     fname += umfcstype+ '_sl_%s_' + ens + '_0000_' + svar + '.nc' 
     infiles = [os.path.join(*[_opPath_, ens, svar, fname % str(t).zfill(4)]) 
                         for t in range(6, __end_long_fcst_hour__+1, 6)]
