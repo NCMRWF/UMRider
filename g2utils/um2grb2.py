@@ -870,10 +870,7 @@ def getVarInOutFilesDetails(inDataPath, fname, hr):
                           ('convective_rainfall_amount', 'm01s05i201'),]
         # all vars 
         varNamesSTASH = varNamesSTASH1 + varNamesSTASH2
-        if _requiredPressureLevels_ and not set(_requiredPressureLevels_).issubset([925., 960., 975., 980., 985., 990., 995., 1000.]):
-            # same stash available in pd file also. so remove only incase of chosen pressure level 
-            # not applicable to this pe file.
-            varNamesSTASH.remove(('geopotential_height', 'm01s16i202')) # 8 pressure levels 
+        
         # the cube contains Instantaneous data at every 1-hours.  
         if __anl_step_hour__ == 1: 
             fcstHours = numpy.arange(0,6,1)   
