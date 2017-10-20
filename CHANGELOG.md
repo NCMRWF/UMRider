@@ -1,10 +1,11 @@
 # Change Log
 
-## [v2.0.7](https://github.com/NCMRWF/UMRider/tree/v2.0.7) (2017-10-13)
+## [v2.0.7](https://github.com/NCMRWF/UMRider/tree/v2.0.7) (2017-10-20)
 [Full Changelog](https://github.com/NCMRWF/UMRider/compare/v2.0.6...v2.0.7)
 
 **Merged pull requests:**
 
+- Fixed TIGGE : OLR negative sign bug [\#143](https://github.com/NCMRWF/UMRider/pull/143) ([arulalant](https://github.com/arulalant))
 - TIGGE PROD Mode [\#142](https://github.com/NCMRWF/UMRider/pull/142) ([arulalant](https://github.com/arulalant))
 
 ## [v2.0.6](https://github.com/NCMRWF/UMRider/tree/v2.0.6) (2017-09-14)
