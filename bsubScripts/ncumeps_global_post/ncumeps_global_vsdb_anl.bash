@@ -20,7 +20,7 @@ localTable_relative_dir="$DIR/../../tables/local/ncmr/v1/"
 localTable_absolute_dir="$( cd "$localTable_relative_dir" && pwd )"
 localTable=$localTable_absolute_dir/ncmr_grib2_local_table
 
-export UMRIDER_STARTDATE=20160920
+
 export GRIB2TABLE=$localTable
 echo "export GRIB2TABLE="$GRIB2TABLE
 

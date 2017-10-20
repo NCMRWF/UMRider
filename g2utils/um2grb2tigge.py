@@ -2059,6 +2059,16 @@ def packEnsembles(arg, **kwarg):
             print regdCube.data.min(), regdCube.data.max()
         # end of if varName.endswith('_flux'):
         
+        if (varName, varSTASH) == ('toa_outgoing_longwave_flux', 'm01s02i205'):
+            # https://software.ecmwf.int/wiki/display/TIGGE/Rules+for+data+encoding+and+exchange
+            # as per the tigge statndard, The flux sign convention will be positive downwards.
+            # So, here toa-olr shoule be negative, but ncum model just gives the magnitude. So 
+            # lets fix this by ourself.
+            if regdCube.data.max() > 0 and regdCube.data.min() > 0:
+                # convert to negative if only this data sign is positive.
+                regdCube.data *= -1 # multiply with -1 to indicate this is upward flux.
+        # end of if (varName, varSTASH) == ('toa_outgoing_longwave_flux', 'm01s02i205'):
+        
         if (varName, varSTASH) in _precipVars_:
             # Since we are not using 'mask' option for extrapolate while 
             # doing linear regrid, which bring -ve values after regrid in 
