@@ -1,0 +1,26 @@
+NCUM table link : https://github.com/NCMRWF/UMRider/new/master/tables/WRF-Noah
+
+Include the following lines in your namelist.input (under domains sections) 
+
+ num_metgrid_levels                  = 19,
+ num_metgrid_soil_levels             = 4,
+ 
+ Step 1: Download Vtable.NCUM and keep it WPS/ungrib/Variables_Tables directory.
+ 
+ Step 2: Link the Vtable.NCUM as Vtable in the WPS directory 
+ (commands: `cd WPS; ln -s ungrib/Variables_Tables/Vtable.NCUM Vtable` 
+ 
+ Step 3: Download METGRID.TBL_NCUM, keep it inside metgrid directory and then link it as METGRID.TBL
+ (commands: `cd metgrid; ln -s METGRID.TBL_NCUM METGRID.TBL`
+ 
+ Step 4: cd WPS; ./link_grib.csh /path/to/Downloaded_NCUM_grib2_data/
+ 
+ Step 5: cd WPS; execute `geogrid.exe`, execute `ungrib.exe` and finally execute `metgrid.exe`
+ 
+ Step 6: cd WRF/run; link all the met_em.d0*.nc from WPS directory (which gets created during execution of metgrid.exe)
+ 
+ Step 7: execute real.exe and wrf.exe 
+ 
+ 
+ PS. NCUM 0.25x0.25 and 0.125x0.125 data has been tested for WRF Noah LSF scheme on 05-June-2018 and again on 23-Mar-2019 by NCMRWF team.
+ 
