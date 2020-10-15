@@ -2,7 +2,8 @@ NCUM table link : https://github.com/NCMRWF/UMRider/new/master/tables/WRF-Noah
 
 Include the following lines in your namelist.input (under domains sections) 
 
- num_metgrid_levels                  = 19,
+ num_metgrid_levels                  = 19, (for NCUM)
+ num_metgrid_levels                  = 25, (for IMDAA Regional Reanalysis)
  num_metgrid_soil_levels             = 4,
  
  Step 1: Download Vtable.NCUM and keep it WPS/ungrib/Variables_Tables directory.
